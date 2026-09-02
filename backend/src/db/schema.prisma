@@ -1,0 +1,42 @@
+// Postgres schema for the PDF Voice RAG Agent (Phase 1).
+// Run `npx prisma migrate dev --name init` from backend/ to create the tables.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentStatus {
+  uploading
+  processing
+  ready
+  failed
+}
+
+model Document {
+  id               String         @id @default(uuid())
+  filename         String
+  status           DocumentStatus @default(uploading)
+  qdrantCollection String?        @map("qdrant_collection")
+  pageCount        Int?           @map("page_count")
+  failureReason    String?        @map("failure_reason")
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  sessions Session[]
+
+  @@map("documents")
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id])
+  roomName   String   @map("room_name")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("sessions")
+}
