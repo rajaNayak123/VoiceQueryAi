@@ -1,6 +1,10 @@
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import type { Document } from "@langchain/core/documents";
 import type { ChunkWithMetadata } from "../types";
+import {
+  findChunkBoundingBoxes,
+  type PageCoordinateMap,
+} from "./pdfCoordinates";
 
 const splitter = new RecursiveCharacterTextSplitter({
   chunkSize: 1000,
@@ -8,7 +12,8 @@ const splitter = new RecursiveCharacterTextSplitter({
 });
 
 export async function splitIntoChunks(
-  pages: Document[]
+  pages: Document[],
+  coordinateMap?: Map<number, PageCoordinateMap>
 ): Promise<ChunkWithMetadata[]> {
   const chunks: ChunkWithMetadata[] = [];
 
@@ -18,12 +23,27 @@ export async function splitIntoChunks(
       (page.metadata?.pageNumber as number | undefined) ??
       1;
 
+    const pageCoordMap = coordinateMap?.get(pageNumber);
     const pieces = await splitter.splitText(page.pageContent);
+
     for (const text of pieces) {
       if (text.trim().length === 0) continue;
-      chunks.push({ text, page: pageNumber });
+
+      const { bbox, boxes } = findChunkBoundingBoxes({
+        chunkText: text,
+        pageNumber,
+        pageCoordMap,
+      });
+
+      chunks.push({
+        text,
+        page: pageNumber,
+        bbox,
+        boxes,
+      });
     }
   }
 
   return chunks;
 }
+
