@@ -16,6 +16,7 @@ from livekit.agents import (
 from livekit.plugins import groq, sarvam
 
 from app.config import settings
+from app.rag.semantic_cache_llm import SemanticCacheLLM
 
 # "openai/gpt-oss-20b" trades some quality for lower latency; swap to
 # "openai/gpt-oss-120b" for higher quality if latency budget allows.
@@ -29,6 +30,12 @@ TTS_SPEAKER = "pooja"
 
 
 def build_session() -> AgentSession:
+    base_llm = groq.LLM(
+        model=LLM_MODEL,
+        api_key=settings.groq_api_key,
+    )
+    cached_llm = SemanticCacheLLM(inner_llm=base_llm)
+
     return AgentSession(
         stt=sarvam.STT(
             model="saaras:v3",
@@ -39,10 +46,7 @@ def build_session() -> AgentSession:
         ),
         # Explicitly opt out of default bundled Silero VAD to prevent collision with Sarvam STT
         vad=None,
-        llm=groq.LLM(
-            model=LLM_MODEL,
-            api_key=settings.groq_api_key,
-        ),
+        llm=cached_llm,
         tts=sarvam.TTS(
             model="bulbul:v3",
             target_language_code=TTS_TARGET_LANGUAGE,
