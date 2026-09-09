@@ -31,9 +31,16 @@ export interface BoundingBox {
   height: number;    // percentage (0-100)
 }
 
+export type ContentType = "text" | "table" | "diagram" | "heading";
+
 export interface ChunkWithMetadata {
   text: string;
   page: number;
   bbox?: BoundingBox;
   boxes?: BoundingBox[];
+  contentType?: ContentType;
+  section?: string;
+  caption?: string;
+  metadata?: Record<string, unknown>;
 }
+
