@@ -1,44 +1,108 @@
-import { useEffect, useState } from "react";
-import { getStatus } from "../api/client";
+import { useEffect, useRef, useState } from "react";
+import { getStatus, getDocumentWebSocketUrl } from "../api/client";
 import type { DocumentStatus, DocumentStatusResponse } from "../types";
-
-const POLL_INTERVAL_MS = 1500;
 
 export function useDocumentStatusPoll(documentId: string | null) {
   const [status, setStatus] = useState<DocumentStatus | null>(null);
   const [document, setDocument] = useState<DocumentStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!documentId) return;
+    if (!documentId) {
+      setStatus(null);
+      setDocument(null);
+      setError(null);
+      return;
+    }
 
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
+    let isDisposed = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    async function poll() {
+    // 1. Fast initial status fetch
+    getStatus(documentId)
+      .then((res) => {
+        if (isDisposed) return;
+        setDocument(res);
+        setStatus(res.status);
+      })
+      .catch(() => {
+        // Safe to ignore initial check error while processing begins
+      });
+
+    // 2. Real-time WebSocket connection for instant event updates
+    function connectWs() {
+      if (isDisposed) return;
+
       try {
-        const result = await getStatus(documentId!);
-        if (cancelled) return;
-        setDocument(result);
-        setStatus(result.status);
+        const wsUrl = getDocumentWebSocketUrl(documentId!);
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-        if (result.status === "ready" || result.status === "failed") {
-          return; // stop polling
-        }
-        timer = setTimeout(poll, POLL_INTERVAL_MS);
+        ws.onopen = () => {
+          ws.send(
+            JSON.stringify({
+              type: "subscribe",
+              documentId,
+            })
+          );
+        };
+
+        ws.onmessage = (event) => {
+          if (isDisposed) return;
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "document_status" && data.documentId === documentId) {
+              setStatus(data.status);
+              setDocument((prev) => ({
+                id: data.documentId,
+                filename: data.filename ?? prev?.filename ?? "document.pdf",
+                status: data.status,
+                pageCount: data.pageCount ?? prev?.pageCount ?? null,
+                failureReason: data.failureReason ?? prev?.failureReason ?? null,
+              }));
+
+              if (data.status === "ready" || data.status === "failed") {
+                ws.close(1000, "Processing complete");
+              }
+            }
+          } catch {
+            // Ignore malformed packet
+          }
+        };
+
+        ws.onerror = () => {
+          // Handled gracefully in onclose
+        };
+
+        ws.onclose = (event) => {
+          if (isDisposed) return;
+          // If closed abnormally and not terminal state, attempt auto-reconnect
+          if (event.code !== 1000) {
+            reconnectTimer = setTimeout(() => {
+              connectWs();
+            }, 2000);
+          }
+        };
       } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Status check failed");
+        if (!isDisposed) {
+          setError(err instanceof Error ? err.message : "WebSocket connection failed");
+        }
       }
     }
 
-    poll();
+    connectWs();
 
     return () => {
-      cancelled = true;
-      clearTimeout(timer);
+      isDisposed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.close(1000, "Hook unmounted");
+        wsRef.current = null;
+      }
     };
   }, [documentId]);
 
   return { status, document, error };
 }
+
