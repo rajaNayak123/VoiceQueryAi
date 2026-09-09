@@ -1,6 +1,10 @@
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  useLocalParticipant,
+} from "@livekit/components-react";
 import "@livekit/components-styles";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MicControl } from "./MicControl";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { AgentVisualizer } from "./AgentVisualizer";
@@ -33,7 +37,17 @@ function CallRoomInner({
     selectedCitation,
     agentSpeaking,
     selectCitation,
+    stopAgentSpeaking,
   } = useCitations();
+
+  const { localParticipant } = useLocalParticipant();
+
+  // Instant local barge-in: If user begins speaking, instantly cut off active agent speaking state
+  useEffect(() => {
+    if (localParticipant.isSpeaking && agentSpeaking) {
+      stopAgentSpeaking();
+    }
+  }, [localParticipant.isSpeaking, agentSpeaking, stopAgentSpeaking]);
 
   const [activeTab, setActiveTab] = useState<"citations" | "transcript">("citations");
 
