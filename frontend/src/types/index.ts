@@ -43,10 +43,36 @@ export interface Citation {
   caption?: string | null;
 }
 
+export interface TelemetryMetrics {
+  query?: string;
+  stt_latency_ms: number;
+  retrieval_latency_ms: number;
+  llm_ttft_ms: number;
+  tts_playback_latency_ms: number;
+  total_e2e_ms: number;
+  is_cached: boolean;
+  timestamp: number;
+  document_id?: string;
+  collection?: string;
+}
+
 export interface CitationPacket {
-  type: "citations_retrieved" | "citation_highlight" | "agent_state" | "interruption";
+  type: "citations_retrieved" | "citation_highlight" | "agent_state" | "interruption" | "query_telemetry";
   citations?: Citation[];
   agentSpeaking?: boolean;
   state?: string;
   documentId?: string;
+  metrics?: TelemetryMetrics;
 }
+
+export interface TranscriptItem {
+  id: string;
+  sender: "user" | "agent";
+  text: string;
+  timestamp: Date;
+  confidence?: number;
+  latency?: TelemetryMetrics;
+  citations?: Citation[];
+  isFinal?: boolean;
+}
+
