@@ -1,3 +1,21 @@
-import PQueue from "p-queue";
+import {
+  addDocumentIngestionJob,
+  documentIngestionQueue,
+  documentIngestionWorker,
+  type IngestionJobData,
+} from "./queue/documentQueue";
 
-export const ingestQueue = new PQueue({ concurrency: 2 });
+export {
+  addDocumentIngestionJob,
+  documentIngestionQueue,
+  documentIngestionWorker,
+  IngestionJobData,
+};
+
+// Legacy fallback shim for backward compatibility
+export const ingestQueue = {
+  add: async (fn: () => Promise<unknown>) => {
+    return fn();
+  },
+};
+
