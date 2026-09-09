@@ -7,6 +7,7 @@ stays a pure function of (query, collection) plus the closure/context.
 import asyncio
 import json
 import logging
+import time
 from livekit.agents import RunContext, function_tool, get_job_context
 
 from app.rag.embeddings import embed_query
@@ -26,8 +27,11 @@ async def search_document(context: RunContext, query: str) -> str:
     if not collection:
         return "No document is currently associated with this session."
 
+    t_start = time.perf_counter()
     query_vector = embed_query(query)
     points = retrieve_hybrid_chunks(collection, query, query_vector)
+    retrieval_ms = (time.perf_counter() - t_start) * 1000
+    context.userdata["last_retrieval_ms"] = retrieval_ms
 
     if not points:
         return "No relevant content was found in the document for that query."
