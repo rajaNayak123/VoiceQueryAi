@@ -19,9 +19,21 @@ export interface CreateSessionResponse {
   token: string;
   roomName: string;
   livekitUrl: string;
+  documentId?: string;
+  filename?: string;
+}
+
+export interface BoundingBox {
+  pageIndex: number; // 0-based page index
+  left: number;      // percentage (0-100)
+  top: number;       // percentage (0-100)
+  width: number;     // percentage (0-100)
+  height: number;    // percentage (0-100)
 }
 
 export interface ChunkWithMetadata {
   text: string;
   page: number;
+  bbox?: BoundingBox;
+  boxes?: BoundingBox[];
 }
