@@ -11,7 +11,18 @@ export async function createCollection(collectionName: string): Promise<void> {
   await qdrant.createCollection(collectionName, {
     vectors: { size: EMBEDDING_DIM, distance: "Cosine" },
   });
-  logger.info({ collectionName }, "Created Qdrant collection");
+
+  // Create full-text payload index on 'text' for BM25 and keyword search
+  try {
+    await qdrant.createPayloadIndex(collectionName, {
+      field_name: "text",
+      field_schema: "text",
+    });
+  } catch (err) {
+    logger.warn({ err, collectionName }, "Could not create text payload index");
+  }
+
+  logger.info({ collectionName }, "Created Qdrant collection with text index");
 }
 
 export async function upsertChunks(params: {
