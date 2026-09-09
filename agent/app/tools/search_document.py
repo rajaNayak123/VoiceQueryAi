@@ -10,7 +10,7 @@ import logging
 from livekit.agents import RunContext, function_tool, get_job_context
 
 from app.rag.embeddings import embed_query
-from app.rag.retriever import retrieve_chunks
+from app.rag.retriever import retrieve_hybrid_chunks
 
 logger = logging.getLogger("pdf-rag-agent.tool")
 
@@ -27,7 +27,7 @@ async def search_document(context: RunContext, query: str) -> str:
         return "No document is currently associated with this session."
 
     query_vector = embed_query(query)
-    points = retrieve_chunks(collection, query_vector)
+    points = retrieve_hybrid_chunks(collection, query, query_vector)
 
     if not points:
         return "No relevant content was found in the document for that query."
