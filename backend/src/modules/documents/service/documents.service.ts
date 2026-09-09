@@ -32,6 +32,20 @@ export const documentsService = {
     return document;
   },
 
+  async getFilePath(id: string) {
+    const document = await documentsRepository.findById(id);
+    if (!document) {
+      throw new AppError(404, "Document not found");
+    }
+    const filePath = path.join(UPLOAD_DIR, `${id}.pdf`);
+    try {
+      await fs.access(filePath);
+    } catch {
+      throw new AppError(404, "PDF file not found on disk");
+    }
+    return { filePath, filename: document.filename };
+  },
+
   async deleteDocument(id: string) {
     const document = await documentsRepository.findById(id);
     if (!document) {
