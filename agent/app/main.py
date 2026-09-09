@@ -12,7 +12,10 @@ import logging
 
 from livekit import agents
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli
-from livekit.agents.voice.agent_session import AgentStateChangedEvent
+from livekit.agents.voice.agent_session import (
+    AgentStateChangedEvent,
+    UserStateChangedEvent,
+)
 
 from app.config import settings
 from app.prompts.system_prompt import SYSTEM_PROMPT, greeting_instructions
@@ -83,6 +86,32 @@ async def entrypoint(ctx: JobContext) -> None:
             payload = json.dumps({
                 "type": "agent_state",
                 "state": event.new_state,
+                "agentSpeaking": False,
+            }).encode("utf-8")
+            asyncio.create_task(
+                ctx.room.local_participant.publish_data(
+                    payload,
+                    reliable=True,
+                    topic="citations",
+                )
+            )
+
+    # Smart audio interruption / barge-in handler:
+    # When user starts speaking while the agent is streaming TTS, cancel generation
+    # instantly, flush audio buffer, and notify frontend without lag.
+    @session.on("user_state_changed")
+    def _on_user_state_changed(event: UserStateChangedEvent) -> None:
+        logger.info("User state transitioned: %s -> %s", event.old_state, event.new_state)
+        if event.new_state == "speaking" and session.agent_state == "speaking":
+            logger.info("User interrupted agent speech. Instantly cancelling TTS playout.")
+            try:
+                session.interrupt(force=True)
+            except Exception as e:
+                logger.warning("Error during session.interrupt: %s", e)
+
+            # Broadcast instant interruption packet to room
+            payload = json.dumps({
+                "type": "interruption",
                 "agentSpeaking": False,
             }).encode("utf-8")
             asyncio.create_task(
