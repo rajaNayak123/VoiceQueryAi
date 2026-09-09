@@ -7,7 +7,12 @@ import { useDocumentStatusPoll } from "../hooks/useDocumentStatusPoll";
 import { createSession } from "../api/client";
 
 interface UploadPageProps {
-  onSessionReady: (params: { token: string; livekitUrl: string }) => void;
+  onSessionReady: (params: {
+    token: string;
+    livekitUrl: string;
+    documentId?: string;
+    filename?: string;
+  }) => void;
 }
 
 export function UploadPage({ onSessionReady }: UploadPageProps) {
@@ -29,7 +34,12 @@ export function UploadPage({ onSessionReady }: UploadPageProps) {
     setSessionError(null);
     try {
       const session = await createSession(documentId);
-      onSessionReady({ token: session.token, livekitUrl: session.livekitUrl });
+      onSessionReady({
+        token: session.token,
+        livekitUrl: session.livekitUrl,
+        documentId: session.documentId ?? documentId,
+        filename: session.filename ?? document?.filename,
+      });
     } catch (err) {
       setSessionError(err instanceof Error ? err.message : "Could not start call");
     } finally {
