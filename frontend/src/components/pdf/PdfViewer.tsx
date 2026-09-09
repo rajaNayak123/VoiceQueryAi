@@ -16,18 +16,18 @@ interface PdfViewerProps {
 export function PdfViewer({
   fileUrl,
   filename = "Document",
-  citations,
-  selectedCitation,
-  agentSpeaking,
+  citations = [],
+  selectedCitation = null,
+  agentSpeaking = false,
 }: PdfViewerProps) {
-  // Use refs so renderHighlights callback always accesses fresh state
-  const citationsRef = useRef(citations);
-  citationsRef.current = citations;
+  // Use refs so renderHighlights callback always accesses fresh state safely
+  const citationsRef = useRef<Citation[]>(citations || []);
+  citationsRef.current = citations || [];
 
-  const selectedCitationRef = useRef(selectedCitation);
+  const selectedCitationRef = useRef<Citation | null>(selectedCitation);
   selectedCitationRef.current = selectedCitation;
 
-  const agentSpeakingRef = useRef(agentSpeaking);
+  const agentSpeakingRef = useRef<boolean>(agentSpeaking);
   agentSpeakingRef.current = agentSpeaking;
 
   // Highlight plugin must be called at top level of component (it is a hook internally)
