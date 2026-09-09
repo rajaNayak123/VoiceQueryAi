@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { Viewer, Worker } from "@react-pdf-viewer/core";
 import { highlightPlugin, type RenderHighlightsProps } from "@react-pdf-viewer/highlight";
 import "@react-pdf-viewer/core/lib/styles/index.css";
@@ -20,75 +20,88 @@ export function PdfViewer({
   selectedCitation,
   agentSpeaking,
 }: PdfViewerProps) {
-  // Highlight plugin configuration
-  const highlightPluginInstance = useMemo(() => {
-    return highlightPlugin({
-      renderHighlights: (props: RenderHighlightsProps) => {
-        const pageHighlights = citations.filter(
-          (c) => c.pageIndex === props.pageIndex || c.page - 1 === props.pageIndex
-        );
+  // Use refs so renderHighlights callback always accesses fresh state
+  const citationsRef = useRef(citations);
+  citationsRef.current = citations;
 
-        if (pageHighlights.length === 0) {
-          return <div />;
-        }
+  const selectedCitationRef = useRef(selectedCitation);
+  selectedCitationRef.current = selectedCitation;
 
-        return (
-          <div key={`page-highlights-${props.pageIndex}`}>
-            {pageHighlights.map((citation) => {
-              const isSelected = selectedCitation?.id === citation.id;
-              const isSpeakingThis = isSelected && agentSpeaking;
+  const agentSpeakingRef = useRef(agentSpeaking);
+  agentSpeakingRef.current = agentSpeaking;
 
-              // Render line boxes if available, or fall back to overall bounding box
-              const areasToRender =
-                citation.boxes && citation.boxes.length > 0
-                  ? citation.boxes
-                  : citation.bbox
-                  ? [citation.bbox]
-                  : [];
+  // Highlight plugin must be called at top level of component (it is a hook internally)
+  const highlightPluginInstance = highlightPlugin({
+    renderHighlights: (props: RenderHighlightsProps) => {
+      const currentCitations = citationsRef.current;
+      const currentSelected = selectedCitationRef.current;
+      const currentSpeaking = agentSpeakingRef.current;
 
-              const typeClass = `highlight-type-${citation.contentType || "text"}`;
-              const typeLabel =
-                citation.contentType === "table"
-                  ? "Table"
-                  : citation.contentType === "diagram"
-                  ? "Diagram"
-                  : "Speaking";
+      const pageHighlights = currentCitations.filter(
+        (c) => c.pageIndex === props.pageIndex || c.page - 1 === props.pageIndex
+      );
 
-              return areasToRender.map((area, idx) => {
-                const css = props.getCssProperties(area, props.rotation);
-                return (
-                  <div
-                    key={`${citation.id}-box-${idx}`}
-                    className={`pdf-citation-highlight ${typeClass} ${
-                      isSelected ? "is-selected" : ""
-                    } ${isSpeakingThis ? "is-speaking" : ""}`}
-                    style={{
-                      ...css,
-                      position: "absolute",
-                      borderRadius: 3,
-                      transition: "all 0.25s ease-in-out",
-                      pointerEvents: "auto",
-                      cursor: "pointer",
-                    }}
-                    title={`Page ${citation.page} [${citation.contentType || "text"}]: ${citation.snippet.slice(0, 80)}...`}
-                  >
-                    {idx === 0 && isSpeakingThis && (
-                      <span className={`speaking-badge badge-type-${citation.contentType || "text"}`}>
-                        <span className="speaking-dot" />
-                        {typeLabel}
-                      </span>
-                    )}
-                  </div>
-                );
-              });
-            })}
-          </div>
-        );
-      },
-    });
-  }, [citations, selectedCitation, agentSpeaking]);
+      if (pageHighlights.length === 0) {
+        return <div />;
+      }
+
+      return (
+        <div key={`page-highlights-${props.pageIndex}`}>
+          {pageHighlights.map((citation) => {
+            const isSelected = currentSelected?.id === citation.id;
+            const isSpeakingThis = isSelected && currentSpeaking;
+
+            // Render line boxes if available, or fall back to overall bounding box
+            const areasToRender =
+              citation.boxes && citation.boxes.length > 0
+                ? citation.boxes
+                : citation.bbox
+                ? [citation.bbox]
+                : [];
+
+            const typeClass = `highlight-type-${citation.contentType || "text"}`;
+            const typeLabel =
+              citation.contentType === "table"
+                ? "Table"
+                : citation.contentType === "diagram"
+                ? "Diagram"
+                : "Speaking";
+
+            return areasToRender.map((area, idx) => {
+              const css = props.getCssProperties(area, props.rotation);
+              return (
+                <div
+                  key={`${citation.id}-box-${idx}`}
+                  className={`pdf-citation-highlight ${typeClass} ${
+                    isSelected ? "is-selected" : ""
+                  } ${isSpeakingThis ? "is-speaking" : ""}`}
+                  style={{
+                    ...css,
+                    position: "absolute",
+                    borderRadius: 3,
+                    transition: "all 0.25s ease-in-out",
+                    pointerEvents: "auto",
+                    cursor: "pointer",
+                  }}
+                  title={`Page ${citation.page} [${citation.contentType || "text"}]: ${citation.snippet.slice(0, 80)}...`}
+                >
+                  {idx === 0 && isSpeakingThis && (
+                    <span className={`speaking-badge badge-type-${citation.contentType || "text"}`}>
+                      <span className="speaking-dot" />
+                      {typeLabel}
+                    </span>
+                  )}
+                </div>
+              );
+            });
+          })}
+        </div>
+      );
+    },
+  });
 
   const { jumpToHighlightArea } = highlightPluginInstance;
+
 
   // Auto-jump to the citation when selectedCitation updates or agent starts speaking
   useEffect(() => {
