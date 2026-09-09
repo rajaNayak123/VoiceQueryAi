@@ -182,6 +182,8 @@ class SemanticCacheLLM(llm.LLM):
                 # Broadcast citations to room for dynamic PDF paragraph highlighting
                 if self._userdata is not None:
                     self._userdata["pending_citations"] = cached.citations
+                    self._userdata["last_cached"] = True
+                    self._userdata["last_retrieval_ms"] = 0.0
 
                 if self._room and self._room.local_participant and cached.citations:
                     try:
