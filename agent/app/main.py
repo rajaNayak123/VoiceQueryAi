@@ -6,11 +6,13 @@ Run:
   python app/main.py dev     (local dev, connects to LiveKit dev server / cloud)
   python app/main.py start   (production, persistent worker process)
 """
+import asyncio
 import json
 import logging
 
 from livekit import agents
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli
+from livekit.agents.voice.agent_session import AgentStateChangedEvent
 
 from app.config import settings
 from app.prompts.system_prompt import SYSTEM_PROMPT, greeting_instructions
@@ -41,13 +43,60 @@ async def entrypoint(ctx: JobContext) -> None:
             logger.warning("Room metadata was not valid JSON: %r", ctx.room.metadata)
 
     collection = metadata.get("collection")
+    document_id = metadata.get("documentId")
     filename = metadata.get("filename", "your document")
 
     if not collection:
         logger.error("No 'collection' in room metadata - cannot serve RAG queries")
 
     session: AgentSession = build_session()
-    session.userdata = {"collection": collection}
+    session.userdata = {
+        "collection": collection,
+        "documentId": document_id,
+        "filename": filename,
+        "pending_citations": None,
+    }
+
+    # Listen for agent state changes to broadcast real-time citations & speech highlights
+    @session.on("agent_state_changed")
+    def _on_agent_state_changed(event: AgentStateChangedEvent) -> None:
+        logger.info("Agent state transitioned: %s -> %s", event.old_state, event.new_state)
+
+        if event.new_state == "speaking":
+            citations = session.userdata.get("pending_citations")
+            if citations:
+                payload = json.dumps({
+                    "type": "citation_highlight",
+                    "citations": citations,
+                    "agentSpeaking": True,
+                    "documentId": document_id,
+                }).encode("utf-8")
+                asyncio.create_task(
+                    ctx.room.local_participant.publish_data(
+                        payload,
+                        reliable=True,
+                        topic="citations",
+                    )
+                )
+        elif event.new_state in ("listening", "idle"):
+            # Notify frontend that speaking ended so dynamic pulsing stops
+            payload = json.dumps({
+                "type": "agent_state",
+                "state": event.new_state,
+                "agentSpeaking": False,
+            }).encode("utf-8")
+            asyncio.create_task(
+                ctx.room.local_participant.publish_data(
+                    payload,
+                    reliable=True,
+                    topic="citations",
+                )
+            )
+
+    # When user starts a new utterance, clear pending citations
+    @session.on("user_input_transcribed")
+    def _on_user_input(event) -> None:  # noqa: ANN001
+        session.userdata["pending_citations"] = None
 
     await session.start(agent=PdfRagAgent(), room=ctx.room)
 
