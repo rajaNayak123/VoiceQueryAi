@@ -43,6 +43,8 @@ export function useCitations() {
           if (data.type === "citation_highlight") {
             setAgentSpeaking(data.agentSpeaking ?? true);
           }
+        } else if (data.type === "interruption") {
+          setAgentSpeaking(false);
         } else if (data.type === "agent_state") {
           setAgentSpeaking(data.agentSpeaking ?? false);
           if (data.citations && data.citations.length > 0) {
@@ -65,11 +67,16 @@ export function useCitations() {
     setSelectedCitation(citation);
   }, []);
 
+  const stopAgentSpeaking = useCallback(() => {
+    setAgentSpeaking(false);
+  }, []);
+
   return {
     citations,
     allCitations,
     selectedCitation,
     agentSpeaking,
     selectCitation,
+    stopAgentSpeaking,
   };
 }
