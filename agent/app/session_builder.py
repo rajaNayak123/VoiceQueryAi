@@ -1,17 +1,18 @@
 """Builds the AgentSession: STT (Sarvam Saaras) -> LLM (Groq) -> TTS (Sarvam Bulbul).
 
-Key decisions locked in by the build plan:
-- turn_detection="stt": Sarvam's STT plugin handles voice activity detection
-  and turn-taking internally. Do NOT pass a separate `vad=` (Silero or the
-  LiveKit turn-detector) - Sarvam's own docs say layering these on top hurts
-  turn-taking accuracy, it doesn't help it.
-- min_endpointing_delay is deprecated on AgentSession - skipped entirely.
-  Use turn_handling=TurnHandlingOptions(...) later if custom endpointing
-  tuning is ever needed.
-- Groq retired llama-3.3-70b-versatile and llama-3.1-8b-instant on
-  Aug 16, 2026. Use the gpt-oss models instead.
+Smart Interruption (Barge-in):
+- vad=None explicitly opts out of the bundled Silero VAD, preventing VAD flush delays
+  and allowing Sarvam's native speech start/stop signals to drive turn-taking cleanly.
+- turn_handling=TurnHandlingOptions configures instant 150ms interruption detection
+  (min_duration=0.15, min_words=0) so TTS playout cuts off on the first user syllable.
+- resume_false_interruption=False prevents confusing speech resumption after interruption.
 """
-from livekit.agents import AgentSession
+from livekit.agents import (
+    AgentSession,
+    EndpointingOptions,
+    InterruptionOptions,
+    TurnHandlingOptions,
+)
 from livekit.plugins import groq, sarvam
 
 from app.config import settings
@@ -24,12 +25,6 @@ LLM_MODEL = "openai/gpt-oss-20b"
 # e.g. "hi-IN" or "en-IN" if the deployment is single-language.
 STT_LANGUAGE = "unknown"
 TTS_TARGET_LANGUAGE = "en-IN"
-# Must be one of bulbul:v3's compatible speakers (verified against the
-# installed livekit-plugins-sarvam package - it raises ValueError at
-# construction time for any other name): shubh, ritu, rahul, pooja, simran,
-# kavya, amit, ratan, rohan, dev, ishita, shreya, manan, sumit, priya,
-# aditya, kabir, neha, varun, roopa, aayan, ashutosh, advait, amelia,
-# sophia, suhani, rupali, tanya, shruti, kavitha.
 TTS_SPEAKER = "pooja"
 
 
@@ -42,6 +37,8 @@ def build_session() -> AgentSession:
             flush_signal=True,
             api_key=settings.sarvam_api_key,
         ),
+        # Explicitly opt out of default bundled Silero VAD to prevent collision with Sarvam STT
+        vad=None,
         llm=groq.LLM(
             model=LLM_MODEL,
             api_key=settings.groq_api_key,
@@ -52,14 +49,20 @@ def build_session() -> AgentSession:
             speaker=TTS_SPEAKER,
             api_key=settings.sarvam_api_key,
         ),
-        turn_detection="stt",
-        # No `vad=` on purpose - see module docstring.
-        #
-        # Verified against livekit-agents 1.7.1: `turn_detection=` still
-        # works but now logs "turn_detection is deprecated and will be
-        # removed in v2.0. Use turn_handling=TurnHandlingOptions(...)
-        # instead" - newer than what this plan was written against. Not a
-        # functional problem today; when livekit-agents 2.0 ships, migrate
-        # this to turn_handling=TurnHandlingOptions(...) (which superseded
-        # both turn_detection and min_endpointing_delay).
+        turn_handling=TurnHandlingOptions(
+            turn_detection="stt",
+            interruption=InterruptionOptions(
+                enabled=True,
+                min_duration=0.15,  # 150ms instant barge-in response
+                min_words=0,        # Cut off immediately on first syllable
+                discard_audio_if_uninterruptible=True,
+                resume_false_interruption=False,  # Never replay interrupted text
+                false_interruption_timeout=None,
+                backchannel_boundary=None,
+            ),
+            endpointing=EndpointingOptions(
+                min_delay=0.35,  # Low-latency turn endpointing
+                max_delay=2.0,
+            ),
+        ),
     )
