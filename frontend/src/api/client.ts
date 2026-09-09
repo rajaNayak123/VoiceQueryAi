@@ -50,3 +50,9 @@ export function getDocumentPdfUrl(documentId: string): string {
   return `${API_BASE_URL}/api/documents/${documentId}/file`;
 }
 
+export function getDocumentWebSocketUrl(documentId: string): string {
+  const wsBase = API_BASE_URL.replace(/^http/, "ws");
+  return `${wsBase}/ws/documents?documentId=${encodeURIComponent(documentId)}`;
+}
+
+
