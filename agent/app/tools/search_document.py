@@ -4,10 +4,15 @@ The Qdrant collection to query is read from room metadata (parsed in
 main.py's entrypoint) and passed in via RunContext userdata, so this tool
 stays a pure function of (query, collection) plus the closure/context.
 """
-from livekit.agents import RunContext, function_tool
+import asyncio
+import json
+import logging
+from livekit.agents import RunContext, function_tool, get_job_context
 
 from app.rag.embeddings import embed_query
 from app.rag.retriever import retrieve_chunks
+
+logger = logging.getLogger("pdf-rag-agent.tool")
 
 
 @function_tool()
@@ -28,9 +33,60 @@ async def search_document(context: RunContext, query: str) -> str:
         return "No relevant content was found in the document for that query."
 
     formatted = []
+    citations = []
+
     for point in points:
         text = point.payload.get("text", "")
-        page = point.payload.get("page", "?")
-        formatted.append(f"[Page {page}] {text}")
+        page = point.payload.get("page", 1)
+        bbox = point.payload.get("bbox")
+        boxes = point.payload.get("boxes")
+
+        try:
+            page_num = int(page)
+        except (ValueError, TypeError):
+            page_num = 1
+
+        page_index = max(0, page_num - 1)
+        if not bbox:
+            bbox = {
+                "pageIndex": page_index,
+                "left": 10.0,
+                "top": 15.0,
+                "width": 80.0,
+                "height": 12.0,
+            }
+
+        citation = {
+            "id": str(point.id),
+            "page": page_num,
+            "pageIndex": page_index,
+            "snippet": text[:350] if len(text) > 350 else text,
+            "bbox": bbox,
+            "boxes": boxes if boxes else [bbox],
+            "score": getattr(point, "score", None),
+        }
+        citations.append(citation)
+        formatted.append(f"[Page {page_num}] {text}")
+
+    # Store citations in userdata so the speaking state handler can broadcast them
+    context.userdata["pending_citations"] = citations
+
+    # Also publish immediate citations_retrieved event over LiveKit data channel
+    job_ctx = get_job_context(required=False)
+    if job_ctx and job_ctx.room and job_ctx.room.local_participant:
+        try:
+            payload = json.dumps({
+                "type": "citations_retrieved",
+                "citations": citations,
+            }).encode("utf-8")
+            asyncio.create_task(
+                job_ctx.room.local_participant.publish_data(
+                    payload,
+                    reliable=True,
+                    topic="citations",
+                )
+            )
+        except Exception as e:
+            logger.warning("Failed to publish citations data packet: %s", e)
 
     return "\n\n".join(formatted)
