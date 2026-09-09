@@ -12,6 +12,7 @@ router.post(
   documentsController.upload
 );
 router.get("/:id/status", documentsController.status);
+router.get("/:id/file", documentsController.getFile);
 router.delete("/:id", documentsController.remove);
 
 export default router;
