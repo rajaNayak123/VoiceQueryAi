@@ -20,5 +20,12 @@ class Settings(BaseSettings):
     cohere_api_key: str | None = None
     reranker_model: str = "BAAI/bge-reranker-base"
 
+    redis_url: str = "redis://127.0.0.1:6379"
+    semantic_cache_enabled: bool = True
+    semantic_cache_threshold: float = 0.90
+    semantic_cache_ttl_seconds: int = 86400 * 7
+    upstash_redis_rest_url: str | None = None
+    upstash_redis_rest_token: str | None = None
+
 
 settings = Settings()
