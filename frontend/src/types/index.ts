@@ -41,7 +41,7 @@ export interface Citation {
 }
 
 export interface CitationPacket {
-  type: "citations_retrieved" | "citation_highlight" | "agent_state";
+  type: "citations_retrieved" | "citation_highlight" | "agent_state" | "interruption";
   citations?: Citation[];
   agentSpeaking?: boolean;
   state?: string;
