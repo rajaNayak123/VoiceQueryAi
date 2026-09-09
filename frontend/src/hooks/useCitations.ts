@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
-import type { Citation, CitationPacket } from "../types";
+import type { Citation, CitationPacket, TelemetryMetrics } from "../types";
 
 export function useCitations() {
   const room = useRoomContext();
@@ -9,6 +9,8 @@ export function useCitations() {
   const [allCitations, setAllCitations] = useState<Citation[]>([]);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [agentSpeaking, setAgentSpeaking] = useState<boolean>(false);
+  const [latestTelemetry, setLatestTelemetry] = useState<TelemetryMetrics | null>(null);
+  const [telemetryHistory, setTelemetryHistory] = useState<TelemetryMetrics[]>([]);
 
   useEffect(() => {
     if (!room) return;
@@ -19,14 +21,17 @@ export function useCitations() {
       _kind?: unknown,
       topic?: string
     ) => {
-      // Filter by topic if present, but accept all citation-structured payloads
-      if (topic && topic !== "citations" && topic !== "") return;
+      // Filter out unrelated topics if specified
+      if (topic && topic !== "citations" && topic !== "telemetry" && topic !== "") return;
 
       try {
         const text = new TextDecoder().decode(payload);
         const data = JSON.parse(text) as CitationPacket;
 
-        if (data.type === "citations_retrieved" || data.type === "citation_highlight") {
+        if (data.type === "query_telemetry" && data.metrics) {
+          setLatestTelemetry(data.metrics);
+          setTelemetryHistory((prev) => [...prev, data.metrics!]);
+        } else if (data.type === "citations_retrieved" || data.type === "citation_highlight") {
           const newCitations = data.citations || [];
           setCitations(newCitations);
 
@@ -76,7 +81,10 @@ export function useCitations() {
     allCitations,
     selectedCitation,
     agentSpeaking,
+    latestTelemetry,
+    telemetryHistory,
     selectCitation,
     stopAgentSpeaking,
   };
 }
+
