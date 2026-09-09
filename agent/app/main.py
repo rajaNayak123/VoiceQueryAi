@@ -60,6 +60,14 @@ async def entrypoint(ctx: JobContext) -> None:
         "pending_citations": None,
     }
 
+    if hasattr(session.llm, "set_context"):
+        session.llm.set_context(
+            collection=collection,
+            document_id=document_id,
+            userdata=session.userdata,
+            room=ctx.room,
+        )
+
     # Listen for agent state changes to broadcast real-time citations & speech highlights
     @session.on("agent_state_changed")
     def _on_agent_state_changed(event: AgentStateChangedEvent) -> None:
