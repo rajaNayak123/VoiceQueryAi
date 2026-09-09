@@ -2,6 +2,7 @@ import { prisma } from "../config/db";
 import { logger } from "../utils/logger";
 import { loadPdfPages } from "./pdfLoader";
 import { splitIntoChunks } from "./textSplitter";
+import { extractPdfCoordinates } from "./pdfCoordinates";
 import { embedTexts } from "./embeddings";
 import {
   collectionNameFor,
@@ -21,11 +22,14 @@ export async function ingestDocument(params: {
       data: { status: "processing" },
     });
 
-    // 1. Load PDF into per-page LangChain Documents.
-    const pages = await loadPdfPages(filePath);
+    // 1. Load PDF into per-page LangChain Documents and extract layout coordinates.
+    const [pages, coordinateMap] = await Promise.all([
+      loadPdfPages(filePath),
+      extractPdfCoordinates(filePath),
+    ]);
 
-    // 2. Split into chunks, preserving page number in metadata.
-    const chunks = await splitIntoChunks(pages);
+    // 2. Split into chunks, preserving page number and bounding box coordinates in metadata.
+    const chunks = await splitIntoChunks(pages, coordinateMap);
 
     if (chunks.length === 0) {
       throw new Error("PDF produced no extractable text (scanned/empty PDF?)");
