@@ -40,6 +40,9 @@ async def search_document(context: RunContext, query: str) -> str:
         page = point.payload.get("page", 1)
         bbox = point.payload.get("bbox")
         boxes = point.payload.get("boxes")
+        content_type = point.payload.get("contentType", "text")
+        section = point.payload.get("section")
+        caption = point.payload.get("caption")
 
         try:
             page_num = int(page)
@@ -64,9 +67,20 @@ async def search_document(context: RunContext, query: str) -> str:
             "bbox": bbox,
             "boxes": boxes if boxes else [bbox],
             "score": getattr(point, "score", None),
+            "contentType": content_type,
+            "section": section,
+            "caption": caption,
         }
         citations.append(citation)
-        formatted.append(f"[Page {page_num}] {text}")
+
+        prefix = f"[Page {page_num}]"
+        if section:
+            prefix += f" [Section: {section}]"
+        if content_type == "table":
+            prefix += " [Table]"
+        elif content_type == "diagram":
+            prefix += " [Diagram/Figure]"
+        formatted.append(f"{prefix}\n{text}")
 
     # Store citations in userdata so the speaking state handler can broadcast them
     context.userdata["pending_citations"] = citations
