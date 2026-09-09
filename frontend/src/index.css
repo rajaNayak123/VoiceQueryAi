@@ -198,6 +198,38 @@ body {
   animation: highlight-pulse 1.6s infinite ease-in-out;
 }
 
+/* Multi-modal Table Highlights */
+.pdf-citation-highlight.highlight-type-table {
+  background-color: rgba(16, 185, 129, 0.2);
+  border: 1.5px solid rgba(16, 185, 129, 0.85);
+}
+
+.pdf-citation-highlight.highlight-type-table.is-selected {
+  background-color: rgba(16, 185, 129, 0.35);
+  border: 2px solid #10b981;
+}
+
+.pdf-citation-highlight.highlight-type-table.is-speaking {
+  background-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 0 2px #10b981, 0 0 18px rgba(16, 185, 129, 0.6);
+}
+
+/* Multi-modal Diagram Highlights */
+.pdf-citation-highlight.highlight-type-diagram {
+  background-color: rgba(139, 92, 246, 0.2);
+  border: 1.5px dashed rgba(139, 92, 246, 0.85);
+}
+
+.pdf-citation-highlight.highlight-type-diagram.is-selected {
+  background-color: rgba(139, 92, 246, 0.35);
+  border: 2px solid #8b5cf6;
+}
+
+.pdf-citation-highlight.highlight-type-diagram.is-speaking {
+  background-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 0 0 2px #8b5cf6, 0 0 18px rgba(139, 92, 246, 0.6);
+}
+
 @keyframes highlight-pulse {
   0%, 100% {
     box-shadow: 0 0 0 2px #f59e0b, 0 0 12px rgba(245, 158, 11, 0.4);
@@ -225,11 +257,21 @@ body {
   z-index: 20;
 }
 
+.speaking-badge.badge-type-table {
+  background: #10b981;
+  color: #022c22;
+}
+
+.speaking-badge.badge-type-diagram {
+  background: #8b5cf6;
+  color: #1e1035;
+}
+
 .speaking-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #0f172a;
+  background: currentColor;
   animation: pulse-ring-anim 1s infinite;
 }
 
@@ -473,6 +515,13 @@ body {
   align-items: center;
 }
 
+.citation-badges-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .citation-page-badge {
   font-size: 0.75rem;
   font-weight: 600;
@@ -480,6 +529,41 @@ body {
   background: rgba(245, 158, 11, 0.15);
   padding: 2px 8px;
   border-radius: 4px;
+}
+
+.citation-artifact-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.citation-artifact-badge.badge-table {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.citation-artifact-badge.badge-diagram {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.citation-section-badge {
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .citation-speaking-indicator {
