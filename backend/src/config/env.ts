@@ -10,6 +10,9 @@ const envSchema = z.object({
   LIVEKIT_URL: z.string().min(1, "LIVEKIT_URL is required"),
   LIVEKIT_API_KEY: z.string().min(1, "LIVEKIT_API_KEY is required"),
   LIVEKIT_API_SECRET: z.string().min(1, "LIVEKIT_API_SECRET is required"),
+  REDIS_URL: z.string().default("redis://127.0.0.1:6379"),
+  REDIS_HOST: z.string().default("127.0.0.1"),
+  REDIS_PORT: z.string().default("6379"),
 });
 
 const parsed = envSchema.safeParse(process.env);
