@@ -51,6 +51,12 @@ export const sessionsService = {
 
     logger.info({ roomName, documentId }, "Session created and agent dispatched");
 
-    return { token, roomName, livekitUrl: env.LIVEKIT_URL };
+    return {
+      token,
+      roomName,
+      livekitUrl: env.LIVEKIT_URL,
+      documentId: document.id,
+      filename: document.filename,
+    };
   },
 };
