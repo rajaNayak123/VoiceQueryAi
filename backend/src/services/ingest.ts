@@ -5,6 +5,7 @@ import { splitIntoChunks } from "./textSplitter";
 import { extractPdfCoordinates } from "./pdfCoordinates";
 import { embedTexts } from "./embeddings";
 import { parsePdfMultimodal } from "./multimodalParser";
+import { broadcastDocumentStatus } from "./websocket/documentSocket";
 import type { ChunkWithMetadata } from "../types";
 import {
   collectionNameFor,
@@ -23,6 +24,7 @@ export async function ingestDocument(params: {
       where: { id: documentId },
       data: { status: "processing" },
     });
+    broadcastDocumentStatus(documentId, { status: "processing" });
 
     // 1. Attempt multi-modal parsing (Markdown tables, hierarchies, diagrams with coordinates)
     let chunks: ChunkWithMetadata[] = [];
@@ -72,16 +74,25 @@ export async function ingestDocument(params: {
         pageCount,
       },
     });
+    broadcastDocumentStatus(documentId, {
+      status: "ready",
+      pageCount,
+    });
 
     logger.info({ documentId, collectionName }, "Ingestion complete");
   } catch (err) {
+    const failureReason = err instanceof Error ? err.message : String(err);
     logger.error({ err, documentId }, "Ingestion failed");
     await prisma.document.update({
       where: { id: documentId },
       data: {
         status: "failed",
-        failureReason: err instanceof Error ? err.message : String(err),
+        failureReason,
       },
+    });
+    broadcastDocumentStatus(documentId, {
+      status: "failed",
+      failureReason,
     });
   }
 }
