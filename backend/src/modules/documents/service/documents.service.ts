@@ -1,8 +1,7 @@
 import path from "path";
 import fs from "fs/promises";
 import { documentsRepository } from "../repository/documents.repository";
-import { ingestDocument } from "../../../services/ingest";
-import { ingestQueue } from "../../../services/ingestQueue";
+import { addDocumentIngestionJob } from "../../../services/queue/documentQueue";
 import { deleteCollection } from "../../../services/vectorStore";
 import { AppError } from "../../../middleware/errorHandler";
 import { UPLOAD_DIR } from "../../../middleware/upload";
@@ -17,9 +16,10 @@ export const documentsService = {
       filename: file.originalname,
     });
 
-    void ingestQueue.add(() =>
-      ingestDocument({ documentId, filePath: file.path })
-    );
+    await addDocumentIngestionJob({
+      documentId,
+      filePath: file.path,
+    });
 
     return { documentId: document.id, status: document.status };
   },
