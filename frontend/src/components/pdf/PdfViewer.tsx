@@ -46,12 +46,20 @@ export function PdfViewer({
                   ? [citation.bbox]
                   : [];
 
+              const typeClass = `highlight-type-${citation.contentType || "text"}`;
+              const typeLabel =
+                citation.contentType === "table"
+                  ? "Table"
+                  : citation.contentType === "diagram"
+                  ? "Diagram"
+                  : "Speaking";
+
               return areasToRender.map((area, idx) => {
                 const css = props.getCssProperties(area, props.rotation);
                 return (
                   <div
                     key={`${citation.id}-box-${idx}`}
-                    className={`pdf-citation-highlight ${
+                    className={`pdf-citation-highlight ${typeClass} ${
                       isSelected ? "is-selected" : ""
                     } ${isSpeakingThis ? "is-speaking" : ""}`}
                     style={{
@@ -62,12 +70,12 @@ export function PdfViewer({
                       pointerEvents: "auto",
                       cursor: "pointer",
                     }}
-                    title={`Page ${citation.page}: ${citation.snippet.slice(0, 80)}...`}
+                    title={`Page ${citation.page} [${citation.contentType || "text"}]: ${citation.snippet.slice(0, 80)}...`}
                   >
                     {idx === 0 && isSpeakingThis && (
-                      <span className="speaking-badge">
+                      <span className={`speaking-badge badge-type-${citation.contentType || "text"}`}>
                         <span className="speaking-dot" />
-                        Speaking
+                        {typeLabel}
                       </span>
                     )}
                   </div>
