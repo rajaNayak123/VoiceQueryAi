@@ -45,3 +45,8 @@ export async function createSession(
   });
   return handleResponse<CreateSessionResponse>(res);
 }
+
+export function getDocumentPdfUrl(documentId: string): string {
+  return `${API_BASE_URL}/api/documents/${documentId}/file`;
+}
+
