@@ -38,6 +38,9 @@ export interface Citation {
   boxes?: BoundingBox[];
   score?: number | null;
   active?: boolean;
+  contentType?: "text" | "table" | "diagram" | "heading";
+  section?: string | null;
+  caption?: string | null;
 }
 
 export interface CitationPacket {
