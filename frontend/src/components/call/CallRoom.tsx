@@ -4,13 +4,14 @@ import {
   useLocalParticipant,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MicControl } from "./MicControl";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { AgentVisualizer } from "./AgentVisualizer";
 import { EndCallButton } from "./EndCallButton";
 import { PdfViewer } from "../pdf/PdfViewer";
 import { CitationsPanel } from "./CitationsPanel";
+import { SessionSummaryModal } from "./SessionSummaryModal";
 import { useCitations } from "../../hooks/useCitations";
 import { getDocumentPdfUrl } from "../../api/client";
 
@@ -36,6 +37,8 @@ function CallRoomInner({
     allCitations,
     selectedCitation,
     agentSpeaking,
+    latestTelemetry,
+    telemetryHistory,
     selectCitation,
     stopAgentSpeaking,
   } = useCitations();
@@ -50,6 +53,27 @@ function CallRoomInner({
   }, [localParticipant.isSpeaking, agentSpeaking, stopAgentSpeaking]);
 
   const [activeTab, setActiveTab] = useState<"citations" | "transcript">("citations");
+  const [isSummaryOpen, setIsSummaryOpen] = useState<boolean>(false);
+  const startTimeRef = useRef<number>(Date.now());
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+
+  // Track call duration timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleEndCallRequest = () => {
+    // Open summary recap so user can export before exiting
+    setIsSummaryOpen(true);
+  };
+
+  const handleConfirmExit = () => {
+    setIsSummaryOpen(false);
+    onCallEnded();
+  };
 
   if (!documentId) {
     // Single-column fallback when no document is associated
@@ -57,11 +81,34 @@ function CallRoomInner({
       <div className="call-room-fallback">
         <RoomAudioRenderer />
         <AgentVisualizer />
-        <TranscriptPanel />
+        <TranscriptPanel
+          citations={citations}
+          selectedCitation={selectedCitation}
+          onSelectCitation={selectCitation}
+          latestTelemetry={latestTelemetry}
+          telemetryHistory={telemetryHistory}
+        />
         <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
           <MicControl />
-          <EndCallButton onEnded={onCallEnded} />
+          <button
+            type="button"
+            className="recap-trigger-btn"
+            onClick={() => setIsSummaryOpen(true)}
+          >
+            📋 Summary
+          </button>
+          <EndCallButton onEnded={handleEndCallRequest} />
         </div>
+
+        <SessionSummaryModal
+          isOpen={isSummaryOpen}
+          onClose={() => setIsSummaryOpen(false)}
+          onEndCallConfirm={handleConfirmExit}
+          filename={filename}
+          durationSeconds={elapsedSeconds}
+          allCitations={allCitations}
+          telemetryHistory={telemetryHistory}
+        />
       </div>
     );
   }
@@ -92,12 +139,22 @@ function CallRoomInner({
               <span className="assistant-status-dot" />
               <span className="assistant-name">Voice RAG Assistant</span>
             </div>
-            {agentSpeaking && (
-              <span className="speaking-tag">
-                <span className="pulse-icon" />
-                Speaking
-              </span>
-            )}
+            <div className="header-right-actions">
+              {agentSpeaking && (
+                <span className="speaking-tag">
+                  <span className="pulse-icon" />
+                  Speaking
+                </span>
+              )}
+              <button
+                type="button"
+                className="recap-trigger-btn"
+                onClick={() => setIsSummaryOpen(true)}
+                title="View automated session summary & export"
+              >
+                📋 Recap
+              </button>
+            </div>
           </div>
 
           <div className="visualizer-wrapper">
@@ -106,7 +163,7 @@ function CallRoomInner({
 
           <div className="call-controls-bar">
             <MicControl />
-            <EndCallButton onEnded={onCallEnded} />
+            <EndCallButton onEnded={handleEndCallRequest} />
           </div>
         </div>
 
@@ -143,11 +200,28 @@ function CallRoomInner({
             />
           ) : (
             <div className="transcript-panel-wrapper">
-              <TranscriptPanel />
+              <TranscriptPanel
+                citations={citations}
+                selectedCitation={selectedCitation}
+                onSelectCitation={selectCitation}
+                latestTelemetry={latestTelemetry}
+                telemetryHistory={telemetryHistory}
+              />
             </div>
           )}
         </div>
       </aside>
+
+      {/* Session Export & Summary Modal */}
+      <SessionSummaryModal
+        isOpen={isSummaryOpen}
+        onClose={() => setIsSummaryOpen(false)}
+        onEndCallConfirm={handleConfirmExit}
+        filename={filename}
+        durationSeconds={elapsedSeconds}
+        allCitations={allCitations}
+        telemetryHistory={telemetryHistory}
+      />
     </div>
   );
 }
