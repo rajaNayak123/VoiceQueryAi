@@ -33,6 +33,22 @@ export const documentsController = {
     }
   },
 
+  async getFile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { filePath, filename } = await documentsService.getFilePath(
+        req.params.id
+      );
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="${encodeURIComponent(filename)}"`
+      );
+      res.sendFile(filePath);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
       await documentsService.deleteDocument(req.params.id);
