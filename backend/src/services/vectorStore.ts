@@ -28,6 +28,8 @@ export async function upsertChunks(params: {
     payload: {
       text: chunk.text,
       page: chunk.page,
+      bbox: chunk.bbox ?? null,
+      boxes: chunk.boxes ?? null,
       documentId,
     },
   }));
