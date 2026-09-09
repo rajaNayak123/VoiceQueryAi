@@ -5,6 +5,8 @@ import { CallPage } from "./pages/CallPage";
 interface SessionInfo {
   token: string;
   livekitUrl: string;
+  documentId?: string;
+  filename?: string;
 }
 
 export default function App() {
@@ -15,6 +17,8 @@ export default function App() {
       <CallPage
         token={session.token}
         livekitUrl={session.livekitUrl}
+        documentId={session.documentId}
+        filename={session.filename}
         onCallEnded={() => setSession(null)}
       />
     );
