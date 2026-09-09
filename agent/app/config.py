@@ -17,5 +17,8 @@ class Settings(BaseSettings):
 
     sarvam_api_key: str
 
+    cohere_api_key: str | None = None
+    reranker_model: str = "BAAI/bge-reranker-base"
+
 
 settings = Settings()
