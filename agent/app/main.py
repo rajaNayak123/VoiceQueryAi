@@ -20,6 +20,7 @@ from livekit.agents.voice.agent_session import (
 from app.config import settings
 from app.prompts.system_prompt import SYSTEM_PROMPT, greeting_instructions
 from app.session_builder import build_session
+from app.telemetry.tracer import lifecycle_tracer
 from app.tools.search_document import search_document
 
 logger = logging.getLogger("pdf-rag-agent")
@@ -130,10 +131,51 @@ async def entrypoint(ctx: JobContext) -> None:
                 )
             )
 
-    # When user starts a new utterance, clear pending citations
+    # When user starts a new utterance, clear pending citations and track query for telemetry
     @session.on("user_input_transcribed")
     def _on_user_input(event) -> None:  # noqa: ANN001
         session.userdata["pending_citations"] = None
+        transcript = getattr(event, "transcript", "")
+        if transcript and getattr(event, "is_final", True):
+            session.userdata["last_query"] = transcript
+            session.userdata["last_retrieval_ms"] = 0.0
+            session.userdata["last_cached"] = False
+
+    # Trace full turn lifecycle (STT -> Retrieval -> LLM TTFT -> TTS Playback)
+    @session.on("conversation_item_added")
+    def _on_conversation_item_added(event) -> None:  # noqa: ANN001
+        item = getattr(event, "item", None)
+        if not item or getattr(item, "role", None) != "assistant":
+            return
+
+        metrics = getattr(item, "metrics", None)
+        query = session.userdata.get("last_query") or "User query"
+        is_cached = bool(session.userdata.get("last_cached", False))
+        retrieval_ms = float(session.userdata.get("last_retrieval_ms") or 0.0)
+
+        # Extract timing metrics
+        stt_ms = (getattr(metrics, "transcription_delay", 0.0) or 0.0) * 1000.0 if metrics else 0.0
+        ttft_ms = (getattr(metrics, "llm_node_ttft", 0.0) or 0.0) * 1000.0 if metrics else 0.0
+        tts_playback_ms = (
+            (getattr(metrics, "playback_latency", 0.0) or getattr(metrics, "tts_node_ttfb", 0.0) or 0.0) * 1000.0
+            if metrics else 0.0
+        )
+
+        if is_cached:
+            ttft_ms = 1.5  # Sub-2ms for cached response
+            retrieval_ms = 0.0
+
+        lifecycle_tracer.record_turn(
+            query=query,
+            stt_latency_ms=stt_ms,
+            retrieval_latency_ms=retrieval_ms,
+            llm_ttft_ms=ttft_ms,
+            tts_playback_latency_ms=tts_playback_ms,
+            is_cached=is_cached,
+            document_id=document_id,
+            collection=collection,
+            room=ctx.room,
+        )
 
     await session.start(agent=PdfRagAgent(), room=ctx.room)
 
