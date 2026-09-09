@@ -41,6 +41,9 @@ export async function upsertChunks(params: {
       page: chunk.page,
       bbox: chunk.bbox ?? null,
       boxes: chunk.boxes ?? null,
+      contentType: chunk.contentType ?? "text",
+      section: chunk.section ?? null,
+      caption: chunk.caption ?? null,
       documentId,
     },
   }));
