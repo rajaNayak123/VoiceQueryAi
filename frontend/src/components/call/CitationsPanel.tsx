@@ -64,9 +64,26 @@ export function CitationsPanel({
                 onClick={() => onSelectCitation(citation)}
               >
                 <div className="citation-card-header">
-                  <span className="citation-page-badge">
-                    Page {citation.page}
-                  </span>
+                  <div className="citation-badges-group">
+                    <span className="citation-page-badge">
+                      Page {citation.page}
+                    </span>
+                    {citation.contentType === "table" && (
+                      <span className="citation-artifact-badge badge-table">
+                        📊 Table
+                      </span>
+                    )}
+                    {citation.contentType === "diagram" && (
+                      <span className="citation-artifact-badge badge-diagram">
+                        🖼️ Diagram
+                      </span>
+                    )}
+                    {citation.section && (
+                      <span className="citation-section-badge" title={citation.section}>
+                        {citation.section.split(" > ").pop()}
+                      </span>
+                    )}
+                  </div>
                   {isSpeakingThis && (
                     <span className="citation-speaking-indicator">
                       <span className="wave-bar" />
