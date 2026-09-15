@@ -9,6 +9,11 @@ Run:
 import asyncio
 import json
 import logging
+import sys
+from pathlib import Path
+
+# Ensure root agent directory is on sys.path for `app` imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from livekit import agents
 from livekit.agents import Agent, AgentSession, JobContext, WorkerOptions, cli
