@@ -58,7 +58,7 @@ body {
 
 .call-room-split-layout {
   display: grid;
-  grid-template-columns: 1fr 420px;
+  grid-template-columns: 1fr 460px;
   width: 100%;
   height: 100vh;
   background: var(--bg-primary);
@@ -346,12 +346,21 @@ body {
 .visualizer-wrapper {
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px;
-  min-height: 70px;
+  min-height: 80px;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.agent-visualizer-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .call-controls-bar {
@@ -760,9 +769,12 @@ body {
   color: #e2e8f0;
   font-size: 11px;
   font-weight: 500;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   transition: all 0.15s ease;
 }
 
@@ -781,11 +793,13 @@ body {
 }
 
 .waveform-canvas {
+  display: block;
+  width: 100% !important;
   cursor: pointer;
   border-radius: 8px;
 }
 
-/* Header Action Recap Button */
+/* Header right recap button */
 .header-right-actions {
   display: flex;
   align-items: center;
@@ -798,12 +812,12 @@ body {
   color: #e0e7ff;
   font-size: 12px;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 
