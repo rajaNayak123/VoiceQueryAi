@@ -9,7 +9,8 @@ export const sessionsController = {
       if (!documentId) {
         throw new AppError(400, "documentId is required");
       }
-      const result = await sessionsService.createSession(documentId);
+      const userId = (req as any).auth?.userId;
+      const result = await sessionsService.createSession(documentId, userId);
       res.status(201).json(result);
     } catch (err) {
       next(err);
