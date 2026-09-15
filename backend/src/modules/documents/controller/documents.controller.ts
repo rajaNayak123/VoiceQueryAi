@@ -8,7 +8,8 @@ export const documentsController = {
       if (!req.file) {
         throw new AppError(400, "No file uploaded (field name: 'file').");
       }
-      const result = await documentsService.handleUpload(req.file);
+      const userId = (req as any).auth?.userId;
+      const result = await documentsService.handleUpload(req.file, userId);
       res.status(202).json({
         documentId: result.documentId,
         status: result.status, 
@@ -20,7 +21,8 @@ export const documentsController = {
 
   async status(req: Request, res: Response, next: NextFunction) {
     try {
-      const document = await documentsService.getStatus(req.params.id);
+      const userId = (req as any).auth?.userId;
+      const document = await documentsService.getStatus(req.params.id, userId);
       res.json({
         id: document.id,
         filename: document.filename,
@@ -35,8 +37,10 @@ export const documentsController = {
 
   async getFile(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = (req as any).auth?.userId;
       const { filePath, filename } = await documentsService.getFilePath(
-        req.params.id
+        req.params.id,
+        userId
       );
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
@@ -51,8 +55,19 @@ export const documentsController = {
 
   async remove(req: Request, res: Response, next: NextFunction) {
     try {
-      await documentsService.deleteDocument(req.params.id);
+      const userId = (req as any).auth?.userId;
+      await documentsService.deleteDocument(req.params.id, userId);
       res.status(204).send();
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async list(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).auth?.userId;
+      const docs = await documentsService.listUserDocuments(userId);
+      res.json(docs);
     } catch (err) {
       next(err);
     }
