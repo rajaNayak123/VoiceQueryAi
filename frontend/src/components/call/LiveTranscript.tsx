@@ -151,7 +151,12 @@ export function LiveTranscript({
     <div className="live-transcript-container">
       {/* Transcript Header & Search */}
       <div className="transcript-search-bar">
-        <span className="search-icon">🔍</span>
+        <span className="search-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b", display: "block" }}>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </span>
         <input
           type="text"
           placeholder="Search conversation..."
@@ -179,7 +184,14 @@ export function LiveTranscript({
       >
         {filteredMessages.length === 0 && (
           <div className="transcript-empty-state">
-            <div className="empty-wave-icon">🎙️</div>
+            <div className="empty-wave-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#64748b" }}>
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </div>
             <p className="empty-title">Live Transcript Active</p>
             <p className="empty-sub">
               {searchQuery
@@ -202,7 +214,18 @@ export function LiveTranscript({
                 {/* Bubble Header */}
                 <div className="bubble-header">
                   <div className="sender-meta">
-                    <span className="sender-avatar">{isUser ? "👤" : "✨"}</span>
+                    <span className="sender-avatar">
+                      {isUser ? (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      )}
+                    </span>
                     <span className="sender-name">{isUser ? "You" : "Voice RAG Assistant"}</span>
                     <span className="bubble-time">{msg.timestamp}</span>
                   </div>
@@ -210,7 +233,10 @@ export function LiveTranscript({
                   {/* Badges: User Confidence or Agent Latency */}
                   {isUser && msg.confidence && (
                     <span className="confidence-pill" title="Speech recognition confidence score">
-                      ⚡ {msg.confidence}% accuracy
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 3 }}>
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      </svg>
+                      {msg.confidence}% accuracy
                     </span>
                   )}
 
@@ -224,9 +250,12 @@ export function LiveTranscript({
                         }
                         title="Click to inspect 4-phase latency breakdown"
                       >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 3 }}>
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
                         {latency.is_cached
-                          ? "⚡ 3ms (Instant Cache)"
-                          : `⚡ ${Math.round(latency.total_e2e_ms)}ms response`}
+                          ? "3ms (Instant Cache)"
+                          : `${Math.round(latency.total_e2e_ms)}ms response`}
                       </button>
 
                       {/* Tooltip Breakdown */}
@@ -244,21 +273,21 @@ export function LiveTranscript({
                           </div>
                           <div className="breakdown-grid">
                             <div className="breakdown-item">
-                              <span className="phase-label">🎙️ STT (Transcribe):</span>
+                              <span className="phase-label">STT (Transcribe):</span>
                               <span className="phase-val">{latency.stt_latency_ms} ms</span>
                             </div>
                             <div className="breakdown-item">
-                              <span className="phase-label">🔍 RAG Retrieval:</span>
+                              <span className="phase-label">RAG Retrieval:</span>
                               <span className="phase-val">{latency.retrieval_latency_ms} ms</span>
                             </div>
                             <div className="breakdown-item">
-                              <span className="phase-label">🧠 LLM TTFT:</span>
+                              <span className="phase-label">LLM TTFT:</span>
                               <span className="phase-val">
                                 {latency.is_cached ? "0.0 ms (Cached)" : `${latency.llm_ttft_ms} ms`}
                               </span>
                             </div>
                             <div className="breakdown-item">
-                              <span className="phase-label">🔊 TTS Playback:</span>
+                              <span className="phase-label">TTS Playback:</span>
                               <span className="phase-val">{latency.tts_playback_latency_ms} ms</span>
                             </div>
                           </div>
@@ -290,7 +319,12 @@ export function LiveTranscript({
                             onClick={() => onSelectCitation?.(c)}
                             title={`Click to jump to Page ${c.page} and highlight paragraph`}
                           >
-                            <span className="chip-icon">📄</span>
+                            <span className="chip-icon">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                            </span>
                             <span className="chip-text">
                               Page {c.page}
                               {c.section ? ` · ${c.section}` : ""}
@@ -315,7 +349,11 @@ export function LiveTranscript({
           onClick={scrollToBottom}
           title="Jump to latest message"
         >
-          ⬇ Jump to latest
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 4 }}>
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <polyline points="19 12 12 19 5 12" />
+          </svg>
+          Jump to latest
         </button>
       )}
     </div>
