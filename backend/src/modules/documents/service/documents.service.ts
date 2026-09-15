@@ -8,12 +8,13 @@ import { UPLOAD_DIR } from "../../../middleware/upload";
 import { logger } from "../../../utils/logger";
 
 export const documentsService = {
-  async handleUpload(file: Express.Multer.File) {
+  async handleUpload(file: Express.Multer.File, userId?: string) {
     const documentId = path.basename(file.filename, ".pdf");
 
     const document = await documentsRepository.create({
       id: documentId,
       filename: file.originalname,
+      userId,
     });
 
     await addDocumentIngestionJob({
@@ -24,18 +25,24 @@ export const documentsService = {
     return { documentId: document.id, status: document.status };
   },
 
-  async getStatus(id: string) {
+  async getStatus(id: string, userId?: string) {
     const document = await documentsRepository.findById(id);
     if (!document) {
       throw new AppError(404, "Document not found");
     }
+    if (document.userId && document.userId !== userId) {
+      throw new AppError(403, "You do not have permission to access this document");
+    }
     return document;
   },
 
-  async getFilePath(id: string) {
+  async getFilePath(id: string, userId?: string) {
     const document = await documentsRepository.findById(id);
     if (!document) {
       throw new AppError(404, "Document not found");
+    }
+    if (document.userId && document.userId !== userId) {
+      throw new AppError(403, "You do not have permission to access this document");
     }
     const filePath = path.join(UPLOAD_DIR, `${id}.pdf`);
     try {
@@ -46,10 +53,13 @@ export const documentsService = {
     return { filePath, filename: document.filename };
   },
 
-  async deleteDocument(id: string) {
+  async deleteDocument(id: string, userId?: string) {
     const document = await documentsRepository.findById(id);
     if (!document) {
       throw new AppError(404, "Document not found");
+    }
+    if (document.userId && document.userId !== userId) {
+      throw new AppError(403, "You do not have permission to delete this document");
     }
 
     if (document.qdrantCollection) {
@@ -65,5 +75,10 @@ export const documentsService = {
     });
 
     await documentsRepository.delete(id);
+  },
+
+  async listUserDocuments(userId?: string) {
+    if (!userId) return [];
+    return documentsRepository.listByUser(userId);
   },
 };
