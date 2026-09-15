@@ -11,6 +11,8 @@ export function useCitations() {
   const [agentSpeaking, setAgentSpeaking] = useState<boolean>(false);
   const [latestTelemetry, setLatestTelemetry] = useState<TelemetryMetrics | null>(null);
   const [telemetryHistory, setTelemetryHistory] = useState<TelemetryMetrics[]>([]);
+  const [activePhase, setActivePhase] = useState<"idle" | "stt" | "retrieval" | "llm" | "tts" | "completed">("idle");
+  const [activeQuery, setActiveQuery] = useState<string>("");
 
   useEffect(() => {
     if (!room) return;
@@ -28,9 +30,20 @@ export function useCitations() {
         const text = new TextDecoder().decode(payload);
         const data = JSON.parse(text) as CitationPacket;
 
-        if (data.type === "query_telemetry" && data.metrics) {
+        if (data.type === "query_phase") {
+          if (data.phase) {
+            setActivePhase(data.phase as any);
+          }
+          if (data.query) {
+            setActiveQuery(data.query);
+          }
+        } else if (data.type === "query_telemetry" && data.metrics) {
           setLatestTelemetry(data.metrics);
           setTelemetryHistory((prev) => [...prev, data.metrics!]);
+          setActivePhase("completed");
+          if (data.metrics.query) {
+            setActiveQuery(data.metrics.query);
+          }
         } else if (data.type === "citations_retrieved" || data.type === "citation_highlight") {
           const newCitations = data.citations || [];
           setCitations(newCitations);
@@ -47,13 +60,18 @@ export function useCitations() {
 
           if (data.type === "citation_highlight") {
             setAgentSpeaking(data.agentSpeaking ?? true);
+            setActivePhase("tts");
           }
         } else if (data.type === "interruption") {
           setAgentSpeaking(false);
+          setActivePhase("idle");
         } else if (data.type === "agent_state") {
           setAgentSpeaking(data.agentSpeaking ?? false);
           if (data.citations && data.citations.length > 0) {
             setCitations(data.citations);
+          }
+          if (data.state === "listening" || data.state === "idle") {
+            setActivePhase("idle");
           }
         }
       } catch {
@@ -83,6 +101,8 @@ export function useCitations() {
     agentSpeaking,
     latestTelemetry,
     telemetryHistory,
+    activePhase,
+    activeQuery,
     selectCitation,
     stopAgentSpeaking,
   };
