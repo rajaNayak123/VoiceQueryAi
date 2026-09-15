@@ -13,11 +13,14 @@ import type { CreateSessionResponse } from "../../../types";
 import { logger } from "../../../utils/logger";
 
 export const sessionsService = {
-  async createSession(documentId: string): Promise<CreateSessionResponse> {
+  async createSession(documentId: string, userId?: string): Promise<CreateSessionResponse> {
     const document = await documentsRepository.findById(documentId);
 
     if (!document) {
       throw new AppError(404, "Document not found");
+    }
+    if (document.userId && document.userId !== userId) {
+      throw new AppError(403, "You do not have access to this document");
     }
     if (document.status !== "ready") {
       throw new AppError(
@@ -35,6 +38,7 @@ export const sessionsService = {
         collection: document.qdrantCollection,
         documentId: document.id,
         filename: document.filename,
+        userId: userId ?? null,
       }),
     });
 
@@ -43,7 +47,7 @@ export const sessionsService = {
     });
 
     // 3. Mint an access token for the frontend user.
-    const identity = `user-${uuidv4()}`;
+    const identity = userId ? `user-${userId}` : `user-${uuidv4()}`;
     const token = await mintAccessToken({ identity, roomName });
 
     // 4. Record the session.
