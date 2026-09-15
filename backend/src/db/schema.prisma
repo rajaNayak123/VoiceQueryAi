@@ -17,6 +17,19 @@ enum DocumentStatus {
   failed
 }
 
+model User {
+  id        String   @id // Clerk user ID
+  email     String   @unique
+  fullName  String?  @map("full_name")
+  password  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  documents Document[]
+
+  @@map("users")
+}
+
 model Document {
   id               String         @id @default(uuid())
   filename         String
@@ -24,17 +37,20 @@ model Document {
   qdrantCollection String?        @map("qdrant_collection")
   pageCount        Int?           @map("page_count")
   failureReason    String?        @map("failure_reason")
+  userId           String?        @map("user_id")
+  user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime       @default(now()) @map("created_at")
 
   sessions Session[]
 
+  @@index([userId])
   @@map("documents")
 }
 
 model Session {
   id         String   @id @default(uuid())
   documentId String   @map("document_id")
-  document   Document @relation(fields: [documentId], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   roomName   String   @map("room_name")
   createdAt  DateTime @default(now()) @map("created_at")
 
