@@ -12,6 +12,7 @@ import { EndCallButton } from "./EndCallButton";
 import { PdfViewer } from "../pdf/PdfViewer";
 import { CitationsPanel } from "./CitationsPanel";
 import { SessionSummaryModal } from "./SessionSummaryModal";
+import { LiveLatencyHUD } from "./LiveLatencyHUD";
 import { useCitations } from "../../hooks/useCitations";
 import { getDocumentPdfUrl } from "../../api/client";
 
@@ -39,11 +40,31 @@ function CallRoomInner({
     agentSpeaking,
     latestTelemetry,
     telemetryHistory,
+    activePhase,
+    activeQuery,
     selectCitation,
     stopAgentSpeaking,
   } = useCitations();
 
   const { localParticipant } = useLocalParticipant();
+  const [engineerMode, setEngineerMode] = useState<boolean>(true);
+
+  // Keyboard shortcut: Press 'E' to toggle Engineer Mode Live Latency HUD
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA"
+      ) {
+        return;
+      }
+      if (e.key === "e" || e.key === "E") {
+        setEngineerMode((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Instant local barge-in: If user begins speaking, instantly cut off active agent speaking state
   useEffect(() => {
@@ -88,8 +109,18 @@ function CallRoomInner({
           latestTelemetry={latestTelemetry}
           telemetryHistory={telemetryHistory}
         />
-        <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <MicControl />
+          <button
+            type="button"
+            className={`engineer-mode-btn ${engineerMode ? "is-active" : ""}`}
+            onClick={() => setEngineerMode((prev) => !prev)}
+            title="Toggle Engineer Mode: Real-time Live Latency HUD (Press 'E')"
+          >
+            <span className="engineer-icon">🛠️</span>
+            <span>Engineer Mode</span>
+            <span className={`mode-status-dot ${engineerMode ? "active" : ""}`} />
+          </button>
           <button
             type="button"
             className="recap-trigger-btn"
@@ -106,6 +137,15 @@ function CallRoomInner({
           </button>
           <EndCallButton onEnded={handleEndCallRequest} />
         </div>
+
+        <LiveLatencyHUD
+          latestTelemetry={latestTelemetry}
+          telemetryHistory={telemetryHistory}
+          activePhase={activePhase}
+          activeQuery={activeQuery}
+          isOpen={engineerMode}
+          onClose={() => setEngineerMode(false)}
+        />
 
         <SessionSummaryModal
           isOpen={isSummaryOpen}
@@ -153,6 +193,16 @@ function CallRoomInner({
                   Speaking
                 </span>
               )}
+              <button
+                type="button"
+                className={`engineer-mode-btn ${engineerMode ? "is-active" : ""}`}
+                onClick={() => setEngineerMode((prev) => !prev)}
+                title="Toggle Engineer Mode: Real-time Live Latency HUD (Press 'E')"
+              >
+                <span className="engineer-icon">🛠️</span>
+                <span>Engineer Mode</span>
+                <span className={`mode-status-dot ${engineerMode ? "active" : ""}`} />
+              </button>
               <button
                 type="button"
                 className="recap-trigger-btn"
@@ -235,6 +285,16 @@ function CallRoomInner({
         durationSeconds={elapsedSeconds}
         allCitations={allCitations}
         telemetryHistory={telemetryHistory}
+      />
+
+      {/* Real-time Floating Live Latency HUD (Engineer Mode) */}
+      <LiveLatencyHUD
+        latestTelemetry={latestTelemetry}
+        telemetryHistory={telemetryHistory}
+        activePhase={activePhase}
+        activeQuery={activeQuery}
+        isOpen={engineerMode}
+        onClose={() => setEngineerMode(false)}
       />
     </div>
   );
