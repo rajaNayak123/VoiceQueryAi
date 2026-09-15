@@ -6,7 +6,7 @@ export function AgentVisualizer() {
 
   return (
     <div className="agent-visualizer-container">
-      <AudioWaveformVisualizer trackRef={audioTrack} state={state} height={120} />
+      <AudioWaveformVisualizer trackRef={audioTrack} state={state} height={135} />
     </div>
   );
 }
