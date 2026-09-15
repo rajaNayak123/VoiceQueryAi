@@ -185,7 +185,7 @@ class QueryLifecycleTracer:
                 asyncio.create_task(
                     room.local_participant.publish_data(
                         payload,
-                        reliable=False,
+                        reliable=True,
                         topic="telemetry",
                     )
                 )
@@ -193,6 +193,36 @@ class QueryLifecycleTracer:
                 logger.debug("Failed to publish telemetry data packet: %s", e)
 
         return metrics
+
+    def publish_query_phase(
+        self,
+        room: Any | None,
+        query: str,
+        phase: str,
+        is_cached: bool = False,
+    ) -> None:
+        """Publish real-time pipeline phase updates (e.g. 'stt', 'retrieval', 'llm', 'tts') to LiveKit data channel."""
+        if not room or not hasattr(room, "local_participant") or not room.local_participant:
+            return
+
+        try:
+            import asyncio
+            payload = json.dumps({
+                "type": "query_phase",
+                "phase": phase,
+                "query": query,
+                "is_cached": is_cached,
+                "timestamp": time.time(),
+            }).encode("utf-8")
+            asyncio.create_task(
+                room.local_participant.publish_data(
+                    payload,
+                    reliable=True,
+                    topic="telemetry",
+                )
+            )
+        except Exception as e:
+            logger.debug("Failed to publish query phase update: %s", e)
 
 
 # Global tracer instance
