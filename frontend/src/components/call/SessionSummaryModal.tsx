@@ -145,12 +145,12 @@ export function SessionSummaryModal({
 
 ---
 
-## 📌 Executive Summary
+## Executive Summary
 ${executiveSummary}
 
 ---
 
-## 🎯 Key Questions & Answers
+## Key Questions & Answers
 ${
   conversationPairs.length > 0
     ? conversationPairs
@@ -166,7 +166,7 @@ ${
 
 ---
 
-## 📑 Referenced Document Pages & Citations
+## Referenced Document Pages & Citations
 | Page | Section / Topic | Snippet Excerpt |
 | :---: | :--- | :--- |
 ${
@@ -183,7 +183,7 @@ ${
 
 ---
 
-## ✅ Action Items & Next Steps
+## Action Items & Next Steps
 ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
 
 ---
@@ -225,7 +225,15 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
         {/* Modal Header */}
         <div className="summary-modal-header">
           <div className="summary-title-group">
-            <span className="summary-icon">📋</span>
+            <span className="summary-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+            </span>
             <div>
               <h2 className="summary-title">Session Summary & Document Recap</h2>
               <p className="summary-subtitle">
@@ -275,13 +283,25 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
 
           {/* Section 1: Executive Summary */}
           <div className="summary-section">
-            <h3 className="section-title">📌 Executive Summary</h3>
+            <h3 className="section-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              Executive Summary
+            </h3>
             <p className="section-text">{executiveSummary}</p>
           </div>
 
           {/* Section 2: Key Questions & Answers */}
           <div className="summary-section">
-            <h3 className="section-title">🎯 Key Questions & Answers</h3>
+            <h3 className="section-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Key Questions & Answers
+            </h3>
             {conversationPairs.length > 0 ? (
               <div className="qa-list">
                 {conversationPairs.map((pair, idx) => (
@@ -304,7 +324,13 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
 
           {/* Section 3: Referenced Pages & Citations */}
           <div className="summary-section">
-            <h3 className="section-title">📑 Referenced Document Citations</h3>
+            <h3 className="section-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              Referenced Document Citations
+            </h3>
             {allCitations.length > 0 ? (
               <div className="citations-table-wrapper">
                 <table className="summary-citations-table">
@@ -335,7 +361,13 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
 
           {/* Section 4: Action Items */}
           <div className="summary-section">
-            <h3 className="section-title">✅ Action Items & Next Steps</h3>
+            <h3 className="section-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
+                <polyline points="9 11 12 14 22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+              Action Items & Next Steps
+            </h3>
             <ul className="action-items-list">
               {actionItems.map((item, i) => (
                 <li key={i} className="action-item">
@@ -356,7 +388,12 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
               onClick={handleDownloadMarkdown}
               title="Download Markdown (.md)"
             >
-              📥 Download Markdown (.md)
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 5 }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download Markdown (.md)
             </button>
             <button
               type="button"
@@ -364,7 +401,12 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
               onClick={handlePrintPdf}
               title="Print or Save as PDF (.pdf)"
             >
-              🖨️ Export PDF (.pdf)
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 5 }}>
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              Export PDF (.pdf)
             </button>
             <button
               type="button"
@@ -372,7 +414,11 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
               onClick={handleCopy}
               title="Copy markdown text to clipboard"
             >
-              {copied ? "✓ Copied!" : "📋 Copy Summary"}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 5 }}>
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+              {copied ? "Copied!" : "Copy Summary"}
             </button>
           </div>
 
