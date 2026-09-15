@@ -136,6 +136,7 @@ export function AudioWaveformVisualizer({
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
       const dpr = window.devicePixelRatio || 1;
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -146,8 +147,16 @@ export function AudioWaveformVisualizer({
     };
 
     resize();
+    const observer = new ResizeObserver(() => resize());
+    if (canvas.parentElement) {
+      observer.observe(canvas.parentElement);
+    }
     window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
   const toggleMode = useCallback(() => {
@@ -184,7 +193,31 @@ export function AudioWaveformVisualizer({
             onClick={toggleMode}
             title={`Current mode: ${mode}. Click to change.`}
           >
-            {mode === "wave" ? "🌊 Wave" : mode === "equalizer" ? "📊 Bars" : "⚡ Orb"}
+            {mode === "wave" ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12c1-2 2-4 3.5-4s2.5 2 3.5 4c1 2 2 4 3.5 4s2.5-2 3.5-4c1-2 2-4 3.5-4s2.5 2 3.5 4" />
+                </svg>
+                <span>Wave</span>
+              </>
+            ) : mode === "equalizer" ? (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <span>Bars</span>
+              </>
+            ) : (
+              <>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <circle cx="12" cy="12" r="3.5" />
+                </svg>
+                <span>Orb</span>
+              </>
+            )}
           </button>
         </div>
       </div>
