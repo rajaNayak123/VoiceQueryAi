@@ -57,12 +57,15 @@ export interface TelemetryMetrics {
 }
 
 export interface CitationPacket {
-  type: "citations_retrieved" | "citation_highlight" | "agent_state" | "interruption" | "query_telemetry";
+  type: "citations_retrieved" | "citation_highlight" | "agent_state" | "interruption" | "query_telemetry" | "query_phase";
   citations?: Citation[];
   agentSpeaking?: boolean;
   state?: string;
   documentId?: string;
   metrics?: TelemetryMetrics;
+  phase?: "stt" | "retrieval" | "llm" | "tts" | "completed" | "idle";
+  query?: string;
+  is_cached?: boolean;
 }
 
 export interface TranscriptItem {
