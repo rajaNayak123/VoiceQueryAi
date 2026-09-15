@@ -10,9 +10,14 @@
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
     "test": "vitest run"
   },
+  "prisma": {
+    "schema": "src/db/schema.prisma"
+  },
   "dependencies": {
+    "@clerk/express": "^2.1.66",
     "@huggingface/inference": "^4.13.28",
     "@langchain/community": "^1.1.29",
     "@langchain/core": "^0.3.26",
