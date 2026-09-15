@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Viewer, Worker } from "@react-pdf-viewer/core";
 import { highlightPlugin, type RenderHighlightsProps } from "@react-pdf-viewer/highlight";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/highlight/lib/styles/index.css";
 import type { Citation } from "../../types";
+import { getAuthHeaders } from "../../api/client";
 
 interface PdfViewerProps {
   fileUrl: string;
@@ -20,6 +21,10 @@ export function PdfViewer({
   selectedCitation = null,
   agentSpeaking = false,
 }: PdfViewerProps) {
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // Use refs so renderHighlights callback always accesses fresh state safely
   const citationsRef = useRef<Citation[]>(citations || []);
   citationsRef.current = citations || [];
@@ -122,6 +127,61 @@ export function PdfViewer({
     }
   }, [selectedCitation, jumpToHighlightArea]);
 
+  // Authenticated fetch for PDF binary data
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+
+    async function loadPdf() {
+      if (!fileUrl) return;
+      setIsLoading(true);
+      setLoadError(null);
+
+      // If already a local blob/data URL, use directly
+      if (fileUrl.startsWith("blob:") || fileUrl.startsWith("data:")) {
+        setResolvedUrl(fileUrl);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(fileUrl, {
+          headers: {
+            ...authHeaders,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Server returned status ${res.status} (${res.statusText || "Unauthorized"})`);
+        }
+
+        const blob = await res.blob();
+        if (!active) return;
+
+        objectUrl = URL.createObjectURL(blob);
+        setResolvedUrl(objectUrl);
+      } catch (err: any) {
+        if (active) {
+          setLoadError(err.message || "Failed to load PDF file.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadPdf();
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [fileUrl]);
+
   return (
     <div className="pdf-viewer-container">
       <div className="pdf-viewer-header">
@@ -154,13 +214,62 @@ export function PdfViewer({
       </div>
 
       <div className="pdf-viewer-canvas-wrapper">
-        <Worker workerUrl="/pdf.worker.min.js">
-          <Viewer
-            fileUrl={fileUrl}
-            plugins={[highlightPluginInstance]}
-            initialPage={selectedCitation ? selectedCitation.pageIndex : 0}
-          />
-        </Worker>
+        {isLoading && (
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            gap: 16,
+            color: "#94a3b8"
+          }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              border: "3px solid rgba(255, 255, 255, 0.1)",
+              borderTopColor: "#38bdf8",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite"
+            }} />
+            <span style={{ fontSize: "0.95rem" }}>Loading document preview...</span>
+          </div>
+        )}
+
+        {loadError && !isLoading && (
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            gap: 14,
+            padding: 24,
+            textAlign: "center"
+          }}>
+            <div style={{
+              background: "rgba(239, 68, 68, 0.15)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              color: "#fca5a5",
+              borderRadius: 8,
+              padding: "16px 24px",
+              maxWidth: 480
+            }}>
+              <p style={{ fontWeight: 600, margin: "0 0 8px" }}>Could not load PDF</p>
+              <p style={{ fontSize: "0.88rem", margin: 0, opacity: 0.85 }}>{loadError}</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !loadError && resolvedUrl && (
+          <Worker workerUrl="/pdf.worker.min.js">
+            <Viewer
+              fileUrl={resolvedUrl}
+              plugins={[highlightPluginInstance]}
+              initialPage={selectedCitation ? selectedCitation.pageIndex : 0}
+            />
+          </Worker>
+        )}
       </div>
     </div>
   );
