@@ -1,28 +1,49 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
+import { setAuthTokenGetter } from "./api/client";
 import { UploadPage } from "./pages/UploadPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { CallPage } from "./pages/CallPage";
-
-interface SessionInfo {
-  token: string;
-  livekitUrl: string;
-  documentId?: string;
-  filename?: string;
-}
+import { NotFoundPage } from "./pages/NotFoundPage";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 export default function App() {
-  const [session, setSession] = useState<SessionInfo | null>(null);
+  const { getToken } = useAuth();
 
-  if (session) {
-    return (
-      <CallPage
-        token={session.token}
-        livekitUrl={session.livekitUrl}
-        documentId={session.documentId}
-        filename={session.filename}
-        onCallEnded={() => setSession(null)}
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+  }, [getToken]);
+
+  return (
+    <Routes>
+      {/* Public Home & Landing Page */}
+      <Route path="/" element={<UploadPage />} />
+
+      {/* Protected Document Studio & Library */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
       />
-    );
-  }
 
-  return <UploadPage onSessionReady={setSession} />;
+      {/* Protected Voice Call Room */}
+      <Route
+        path="/call/:documentId"
+        element={
+          <ProtectedRoute>
+            <CallPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 Fallback */}
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
 }
+
+
