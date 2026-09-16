@@ -62,8 +62,11 @@ export async function ingestDocument(params: {
     const collectionName = collectionNameFor(documentId);
     await createCollection(collectionName);
 
+    const docRecord = await prisma.document.findUnique({ where: { id: documentId } });
+    const filename = docRecord?.filename || documentId;
+
     // 4. Upsert all chunk vectors with rich multi-modal payload.
-    await upsertChunks({ collectionName, documentId, chunks, vectors });
+    await upsertChunks({ collectionName, documentId, filename, chunks, vectors });
 
     // 5. Flip status to ready.
     await prisma.document.update({
