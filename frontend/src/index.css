@@ -177,6 +177,81 @@ body {
   flex: 1;
   height: calc(100vh - 54px);
   overflow: auto;
+  scroll-behavior: smooth !important;
+}
+
+.pdf-viewer-canvas-wrapper .rpv-core__inner-pages {
+  scroll-behavior: smooth !important;
+}
+
+/* Auto-Focus Follow Along Toggle Switch in PDF Header */
+.follow-along-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  user-select: none;
+}
+
+.follow-along-toggle-btn:hover {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #f1f5f9;
+}
+
+.follow-along-toggle-btn.is-active {
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.follow-along-toggle-btn .toggle-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: all 0.2s ease;
+}
+
+.follow-along-toggle-btn.is-active .toggle-indicator-dot {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  animation: pulse-dot-glow 1.4s infinite ease-in-out;
+}
+
+.follow-along-toggle-btn .toggle-status {
+  font-size: 0.68rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.follow-along-toggle-btn.is-active .toggle-status {
+  background: rgba(56, 189, 248, 0.25);
+  color: #e0f2fe;
+}
+
+@keyframes pulse-dot-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+    box-shadow: 0 0 12px #38bdf8;
+  }
 }
 
 /* Real-time Dynamic Paragraph Highlights */
@@ -192,10 +267,44 @@ body {
   border-bottom: 2px solid #f59e0b;
 }
 
+/* Follow-Along Spotlight Active & Speaking Bounding Box */
+.pdf-citation-highlight.is-spotlight {
+  background-color: rgba(245, 158, 11, 0.32);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.85), 0 0 16px rgba(245, 158, 11, 0.4);
+}
+
 .pdf-citation-highlight.is-speaking {
   background-color: rgba(245, 158, 11, 0.45);
-  box-shadow: 0 0 0 2px #f59e0b, 0 0 15px rgba(245, 158, 11, 0.5);
-  animation: highlight-pulse 1.6s infinite ease-in-out;
+  box-shadow: 0 0 0 2.5px #f59e0b, 0 0 25px rgba(245, 158, 11, 0.65), inset 0 0 12px rgba(251, 191, 36, 0.3);
+  animation: highlight-pulse 1.4s infinite ease-in-out;
+  z-index: 15;
+}
+
+/* Radar Pulse Ripple Aura around the focused text */
+.spotlight-pulse-aura {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid #fbbf24;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: spotlight-aura-pulse 1.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+@keyframes spotlight-aura-pulse {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.95;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    transform: scale(1.06);
+    opacity: 0.3;
+    box-shadow: 0 0 20px 10px rgba(245, 158, 11, 0);
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 0;
+  }
 }
 
 /* Multi-modal Table Highlights */
@@ -211,7 +320,7 @@ body {
 
 .pdf-citation-highlight.highlight-type-table.is-speaking {
   background-color: rgba(16, 185, 129, 0.45);
-  box-shadow: 0 0 0 2px #10b981, 0 0 18px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 0 2.5px #10b981, 0 0 25px rgba(16, 185, 129, 0.65);
 }
 
 /* Multi-modal Diagram Highlights */
@@ -227,34 +336,40 @@ body {
 
 .pdf-citation-highlight.highlight-type-diagram.is-speaking {
   background-color: rgba(139, 92, 246, 0.45);
-  box-shadow: 0 0 0 2px #8b5cf6, 0 0 18px rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 0 2.5px #8b5cf6, 0 0 25px rgba(139, 92, 246, 0.65);
 }
 
 @keyframes highlight-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 2px #f59e0b, 0 0 12px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 0 2px #f59e0b, 0 0 14px rgba(245, 158, 11, 0.45);
   }
   50% {
-    box-shadow: 0 0 0 3px #fbbf24, 0 0 22px rgba(245, 158, 11, 0.8);
+    box-shadow: 0 0 0 3.5px #fbbf24, 0 0 28px rgba(245, 158, 11, 0.85);
   }
 }
 
 .speaking-badge {
   position: absolute;
-  top: -24px;
+  top: -26px;
   left: 0;
   background: #f59e0b;
   color: #0f172a;
   font-size: 0.68rem;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 5px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  gap: 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
   pointer-events: none;
-  z-index: 20;
+  z-index: 25;
+  letter-spacing: 0.02em;
+}
+
+.speaking-badge.is-live {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.5);
 }
 
 .speaking-badge.badge-type-table {
@@ -265,6 +380,45 @@ body {
 .speaking-badge.badge-type-diagram {
   background: #8b5cf6;
   color: #1e1035;
+}
+
+/* Audio equalizer bars inside the spotlight badge */
+.speaking-wave-icon {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+
+.speaking-wave-icon .bar {
+  width: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  animation: wave-bar 0.9s ease-in-out infinite alternate;
+}
+
+.speaking-wave-icon .bar-1 {
+  height: 40%;
+  animation-delay: 0.1s;
+}
+
+.speaking-wave-icon .bar-2 {
+  height: 90%;
+  animation-delay: 0.3s;
+}
+
+.speaking-wave-icon .bar-3 {
+  height: 60%;
+  animation-delay: 0.2s;
+}
+
+@keyframes wave-bar {
+  0% {
+    height: 25%;
+  }
+  100% {
+    height: 100%;
+  }
 }
 
 .speaking-dot {
