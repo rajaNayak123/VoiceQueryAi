@@ -5,15 +5,37 @@ import { documentsService } from "../service/documents.service";
 export const documentsController = {
   async upload(req: Request, res: Response, next: NextFunction) {
     try {
-      if (!req.file) {
-        throw new AppError(400, "No file uploaded (field name: 'file').");
+      let files: Express.Multer.File[] = [];
+      if (req.file) {
+        files = [req.file];
+      } else if (Array.isArray(req.files)) {
+        files = req.files;
+      } else if (req.files && typeof req.files === "object") {
+        files = Object.values(req.files).flat();
       }
+
+      if (files.length === 0) {
+        throw new AppError(400, "No file uploaded (field name: 'file' or 'files').");
+      }
+
       const userId = (req as any).auth?.userId;
-      const result = await documentsService.handleUpload(req.file, userId);
-      res.status(202).json({
-        documentId: result.documentId,
-        status: result.status, 
-      });
+      if (files.length === 1) {
+        const result = await documentsService.handleUpload(files[0], userId);
+        res.status(202).json({
+          documentId: result.documentId,
+          status: result.status,
+          documents: [
+            {
+              documentId: result.documentId,
+              filename: files[0].originalname,
+              status: result.status,
+            },
+          ],
+        });
+      } else {
+        const result = await documentsService.handleBatchUpload(files, userId);
+        res.status(202).json(result);
+      }
     } catch (err) {
       next(err);
     }
