@@ -29,13 +29,26 @@ export interface BoundingBox {
   height: number;    // percentage (0-100)
 }
 
+export interface SpotlightPayload {
+  page_number: number;
+  pageIndex: number;
+  coordinates?: BoundingBox;
+  section?: string | null;
+  snippet?: string;
+  citationId?: string;
+  agentSpeaking?: boolean;
+  timestamp?: number;
+}
+
 export interface Citation {
   id: string;
   page: number;      // 1-based page number
+  page_number?: number; // 1-based alias for clarity
   pageIndex: number; // 0-based page index
   snippet: string;
   bbox?: BoundingBox;
   boxes?: BoundingBox[];
+  coordinates?: BoundingBox;
   score?: number | null;
   active?: boolean;
   contentType?: "text" | "table" | "diagram" | "heading";
@@ -57,8 +70,18 @@ export interface TelemetryMetrics {
 }
 
 export interface CitationPacket {
-  type: "citations_retrieved" | "citation_highlight" | "agent_state" | "interruption" | "query_telemetry" | "query_phase";
+  type:
+    | "citations_retrieved"
+    | "citation_highlight"
+    | "agent_state"
+    | "interruption"
+    | "query_telemetry"
+    | "query_phase"
+    | "pdf_spotlight";
   citations?: Citation[];
+  spotlight?: SpotlightPayload | null;
+  page_number?: number;
+  coordinates?: BoundingBox;
   agentSpeaking?: boolean;
   state?: string;
   documentId?: string;
