@@ -66,10 +66,12 @@ async def search_document(context: RunContext, query: str) -> str:
         citation = {
             "id": str(point.id),
             "page": page_num,
+            "page_number": page_num,
             "pageIndex": page_index,
             "snippet": text[:350] if len(text) > 350 else text,
             "bbox": bbox,
             "boxes": boxes if boxes else [bbox],
+            "coordinates": bbox,
             "score": getattr(point, "score", None),
             "contentType": content_type,
             "section": section,
@@ -93,9 +95,21 @@ async def search_document(context: RunContext, query: str) -> str:
     job_ctx = get_job_context(required=False)
     if job_ctx and job_ctx.room and job_ctx.room.local_participant:
         try:
+            spotlight = None
+            if citations:
+                primary = citations[0]
+                spotlight = {
+                    "page_number": primary["page_number"],
+                    "pageIndex": primary["pageIndex"],
+                    "coordinates": primary["coordinates"],
+                    "section": primary.get("section"),
+                    "snippet": primary["snippet"],
+                    "citationId": primary["id"],
+                }
             payload = json.dumps({
                 "type": "citations_retrieved",
                 "citations": citations,
+                "spotlight": spotlight,
             }).encode("utf-8")
             asyncio.create_task(
                 job_ctx.room.local_participant.publish_data(
