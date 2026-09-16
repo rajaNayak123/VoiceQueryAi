@@ -9,6 +9,9 @@ interface CallPageProps {
   livekitUrl?: string;
   documentId?: string;
   filename?: string;
+  documentIds?: string[];
+  documents?: { id: string; filename: string }[];
+  isComparison?: boolean;
   onCallEnded?: () => void;
 }
 
@@ -17,20 +20,29 @@ export function CallPage({
   livekitUrl: propLivekitUrl,
   documentId: propDocumentId,
   filename: propFilename,
+  documentIds: propDocumentIds,
+  documents: propDocuments,
+  isComparison: propIsComparison,
   onCallEnded: propOnCallEnded,
 }: CallPageProps = {}) {
   const { documentId: paramDocumentId } = useParams<{ documentId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const stateSession = (location.state as {
+  const stateSession = location.state as {
     token?: string;
     livekitUrl?: string;
     documentId?: string;
     filename?: string;
-  } | null);
+    documentIds?: string[];
+    documents?: { id: string; filename: string }[];
+    isComparison?: boolean;
+  } | null;
 
   const activeDocumentId = propDocumentId || stateSession?.documentId || paramDocumentId;
+  const activeDocumentIds = propDocumentIds || stateSession?.documentIds || (activeDocumentId && activeDocumentId !== "compare" ? [activeDocumentId] : []);
+  const activeDocuments = propDocuments || stateSession?.documents || [];
+  const isComparison = Boolean(propIsComparison ?? (stateSession?.isComparison || activeDocumentIds.length > 1));
   const [token, setToken] = useState<string | null>(propToken || stateSession?.token || null);
   const [livekitUrl, setLivekitUrl] = useState<string | null>(propLivekitUrl || stateSession?.livekitUrl || null);
   const [filename, setFilename] = useState<string | undefined>(propFilename || stateSession?.filename);
@@ -213,7 +225,10 @@ export function CallPage({
         token={token}
         livekitUrl={livekitUrl}
         documentId={activeDocumentId}
+        documentIds={activeDocumentIds}
+        documents={activeDocuments}
         filename={filename}
+        isComparison={isComparison}
         onCallEnded={handleCallEnded}
       />
     </div>
