@@ -83,9 +83,23 @@ async def entrypoint(ctx: JobContext) -> None:
         if event.new_state == "speaking":
             citations = session.userdata.get("pending_citations")
             if citations:
+                primary = citations[0]
+                coords = primary.get("coordinates") or primary.get("bbox") or (primary.get("boxes")[0] if primary.get("boxes") else None)
+                spotlight = {
+                    "page_number": primary.get("page_number", primary.get("page", 1)),
+                    "pageIndex": primary.get("pageIndex", 0),
+                    "coordinates": coords,
+                    "section": primary.get("section"),
+                    "snippet": primary.get("snippet"),
+                    "citationId": primary.get("id"),
+                    "agentSpeaking": True,
+                }
                 payload = json.dumps({
                     "type": "citation_highlight",
                     "citations": citations,
+                    "spotlight": spotlight,
+                    "page_number": spotlight["page_number"],
+                    "coordinates": coords,
                     "agentSpeaking": True,
                     "documentId": document_id,
                 }).encode("utf-8")
@@ -102,6 +116,7 @@ async def entrypoint(ctx: JobContext) -> None:
                 "type": "agent_state",
                 "state": event.new_state,
                 "agentSpeaking": False,
+                "spotlight": None,
             }).encode("utf-8")
             asyncio.create_task(
                 ctx.room.local_participant.publish_data(
