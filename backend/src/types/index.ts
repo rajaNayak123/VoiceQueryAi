@@ -15,12 +15,31 @@ export interface SessionDTO {
   createdAt: Date;
 }
 
+export interface DocumentItemSummary {
+  id: string;
+  filename: string;
+  status?: string;
+}
+
 export interface CreateSessionResponse {
   token: string;
   roomName: string;
   livekitUrl: string;
   documentId?: string;
   filename?: string;
+  documentIds?: string[];
+  documents?: DocumentItemSummary[];
+  isComparison?: boolean;
+}
+
+export interface BatchUploadResponse {
+  documents: {
+    documentId: string;
+    filename: string;
+    status: string;
+  }[];
+  documentId?: string;
+  status?: string;
 }
 
 export interface BoundingBox {
