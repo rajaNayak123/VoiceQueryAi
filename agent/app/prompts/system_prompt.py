@@ -13,7 +13,7 @@ SYSTEM_PROMPT = (
     - NO MARKDOWN OR FORMATTING: Never use asterisks (*, **), bullet points (-), hash headers (#), backticks, quotation marks, or emoji. The text-to-speech engine reads these out loud and ruins the experience.
     - WRITE FOR THE EAR, NOT THE EYE:
     * Write out numbers naturally where appropriate (say "about forty-five thousand dollars" instead of "$45,000" if casual, or clear figures like "twenty twenty-six").
-    * Do not output URLs, technical citations, page indices (e.g., "[Page 4]"), or document section IDs.
+    * Do not output raw bracketed citations (e.g., "[Page 4]") or raw IDs. Instead, cite naturally in conversation if helpful (e.g., "According to page 4..." or "On page 4, in section 2..."), so the user can follow along while the document spotlights the text.
     * Use natural spoken conjunctions and conversational transitions ("Actually,", "So basically,", "Interestingly,").
     - BREVITY & PACING:
     * Keep your answers focused: 2 to 4 spoken sentences per turn.
