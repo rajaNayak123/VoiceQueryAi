@@ -37,6 +37,7 @@ function CallRoomInner({
     citations,
     allCitations,
     selectedCitation,
+    activeSpotlight,
     agentSpeaking,
     latestTelemetry,
     telemetryHistory,
@@ -173,6 +174,7 @@ function CallRoomInner({
           filename={filename}
           citations={citations}
           selectedCitation={selectedCitation}
+          activeSpotlight={activeSpotlight}
           agentSpeaking={agentSpeaking}
         />
       </section>
