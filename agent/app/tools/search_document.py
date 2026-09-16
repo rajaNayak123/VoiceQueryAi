@@ -17,27 +17,69 @@ logger = logging.getLogger("pdf-rag-agent.tool")
 
 
 @function_tool()
-async def search_document(context: RunContext, query: str) -> str:
-    """Search the uploaded PDF for content relevant to the user's question.
+async def search_document(
+    context: RunContext,
+    query: str,
+    document_name: str | None = None,
+) -> str:
+    """Search the uploaded document(s) for content relevant to the user's question.
 
     Args:
-        query: The user's question or the topic to search for in the document.
+        query: The user's question or the topic to search for in the document(s).
+        document_name: Optional name, number, or title of a specific document (e.g. 'Document A', 'Contract B', 'Resume') if comparing and querying only one document. Leave blank to search across all active documents.
     """
     collection = context.userdata.get("collection")
     if not collection:
         return "No document is currently associated with this session."
 
+    document_ids = context.userdata.get("documentIds") or []
+    if not document_ids and context.userdata.get("documentId"):
+        document_ids = [context.userdata.get("documentId")]
+
+    documents_meta = context.userdata.get("documents") or []
+    doc_lookup = {d["id"]: d.get("filename", "Document") for d in documents_meta if isinstance(d, dict) and "id" in d}
+
+    # Resolve document_name to a specific document ID if requested
+    target_doc_ids = document_ids
+    if document_name and documents_meta:
+        doc_name_clean = document_name.strip().lower()
+        matched_id = None
+
+        # Check for 'Document A' / 'Doc A' (index 0) or 'Document B' / 'Doc B' (index 1)
+        if any(alias in doc_name_clean for alias in ["doc a", "document a", "first doc", "first document"]) and len(documents_meta) >= 1:
+            matched_id = documents_meta[0]["id"]
+        elif any(alias in doc_name_clean for alias in ["doc b", "document b", "second doc", "second document"]) and len(documents_meta) >= 2:
+            matched_id = documents_meta[1]["id"]
+        elif any(alias in doc_name_clean for alias in ["doc c", "document c", "third doc"]) and len(documents_meta) >= 3:
+            matched_id = documents_meta[2]["id"]
+        else:
+            for d in documents_meta:
+                fname = d.get("filename", "").lower()
+                if doc_name_clean in fname or fname in doc_name_clean:
+                    matched_id = d["id"]
+                    break
+
+        if matched_id:
+            target_doc_ids = [matched_id]
+            logger.info("Filtered search to single document: %s (id: %s)", document_name, matched_id)
+
     t_start = time.perf_counter()
     query_vector = embed_query(query)
-    points = retrieve_hybrid_chunks(collection, query, query_vector)
+    points = retrieve_hybrid_chunks(
+        collection=collection,
+        query=query,
+        query_vector=query_vector,
+        doc_ids=target_doc_ids if target_doc_ids else None,
+    )
     retrieval_ms = (time.perf_counter() - t_start) * 1000
     context.userdata["last_retrieval_ms"] = retrieval_ms
 
     if not points:
-        return "No relevant content was found in the document for that query."
+        return "No relevant content was found in the document(s) for that query."
 
     formatted = []
     citations = []
+    is_comparison = bool(context.userdata.get("isComparison", len(document_ids) > 1))
 
     for point in points:
         text = point.payload.get("text", "")
@@ -47,6 +89,8 @@ async def search_document(context: RunContext, query: str) -> str:
         content_type = point.payload.get("contentType", "text")
         section = point.payload.get("section")
         caption = point.payload.get("caption")
+        point_doc_id = point.payload.get("documentId") or context.userdata.get("documentId")
+        point_doc_title = point.payload.get("filename") or doc_lookup.get(point_doc_id, "Document")
 
         try:
             page_num = int(page)
@@ -76,10 +120,12 @@ async def search_document(context: RunContext, query: str) -> str:
             "contentType": content_type,
             "section": section,
             "caption": caption,
+            "documentId": point_doc_id,
+            "documentTitle": point_doc_title,
         }
         citations.append(citation)
 
-        prefix = f"[Page {page_num}]"
+        prefix = f"[{point_doc_title}] [Page {page_num}]" if is_comparison else f"[Page {page_num}]"
         if section:
             prefix += f" [Section: {section}]"
         if content_type == "table":
@@ -105,11 +151,14 @@ async def search_document(context: RunContext, query: str) -> str:
                     "section": primary.get("section"),
                     "snippet": primary["snippet"],
                     "citationId": primary["id"],
+                    "documentId": primary.get("documentId"),
+                    "documentTitle": primary.get("documentTitle"),
                 }
             payload = json.dumps({
                 "type": "citations_retrieved",
                 "citations": citations,
                 "spotlight": spotlight,
+                "documentId": primary.get("documentId") if citations else None,
             }).encode("utf-8")
             asyncio.create_task(
                 job_ctx.room.local_participant.publish_data(
