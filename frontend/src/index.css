@@ -2380,4 +2380,408 @@ body {
   color: #fbbf24;
 }
 
+/* ==========================================================================
+   Multi-Document Comparison Mode ("Compare Doc A vs Doc B") Styling
+   ========================================================================== */
+
+/* Top Document Switcher Bar in Call Room */
+.comparison-doc-switcher-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(12px);
+  z-index: 15;
+  flex-shrink: 0;
+}
+
+.comparison-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.comparison-pills-row::-webkit-scrollbar {
+  display: none;
+}
+
+.comparison-doc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.6);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.comparison-doc-pill:hover {
+  background: rgba(51, 65, 85, 0.7);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.comparison-doc-pill.is-active {
+  color: #ffffff;
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.25);
+}
+
+.comparison-doc-pill.pill-doc-a.is-active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(79, 70, 229, 0.2));
+  border-color: rgba(129, 140, 248, 0.6);
+}
+
+.comparison-doc-pill.pill-doc-b.is-active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.2));
+  border-color: rgba(52, 211, 153, 0.6);
+}
+
+.doc-pill-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pill-doc-a .doc-pill-tag {
+  background: rgba(129, 140, 248, 0.25);
+  color: #a5b4fc;
+}
+
+.pill-doc-b .doc-pill-tag {
+  background: rgba(52, 211, 153, 0.25);
+  color: #6ee7b7;
+}
+
+.doc-pill-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-speaking-indicator {
+  display: inline-flex;
+  position: relative;
+  width: 10px;
+  height: 10px;
+  margin-left: 2px;
+}
+
+.pulse-mini-ring {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: #38bdf8;
+  opacity: 0.6;
+  animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.pulse-mini-core {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38bdf8;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* View Mode Segmented Buttons */
+.view-mode-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-mode-btn:hover {
+  color: #e2e8f0;
+}
+
+.view-mode-btn.active {
+  background: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Dual PDF Grid for Side-by-Side View */
+.comparison-dual-pdf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  height: 100%;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.dual-pdf-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.dual-pdf-pane.pane-a {
+  border-left: 2px solid #6366f1;
+}
+
+.dual-pdf-pane.pane-b {
+  border-left: 2px solid #10b981;
+}
+
+/* Citations Document Badge */
+.citation-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sticky Selection Banner in Dashboard */
+.comparison-sticky-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.85), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(129, 140, 248, 0.4);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3), 0 0 1px 1px rgba(129, 140, 248, 0.3);
+  animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.comparison-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.comparison-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+  font-size: 16px;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+}
+
+.comparison-banner-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.comparison-banner-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 2px 0 0 0;
+}
+
+.comparison-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-clear-selection {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-selection:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.btn-launch-comparison {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-launch-comparison:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.btn-launch-comparison:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Checkbox Selector in Document Library Row */
+.doc-item-select-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1.8px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+  margin-right: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.doc-item-select-checkbox:hover {
+  border-color: #818cf8;
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.doc-item-select-checkbox.is-checked {
+  background: #6366f1;
+  border-color: #6366f1;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+.doc-item-row.is-selected-for-compare {
+  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+.dashboard-docs-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.dashboard-compare-tip {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.dashboard-compare-tip strong {
+  color: #c7d2fe;
+}
+
+/* Batch Docs Status List */
+.batch-docs-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 18px 0;
+  width: 100%;
+}
+
+.batch-doc-item-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.batch-doc-tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+}
+
+.batch-doc-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
 
