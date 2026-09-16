@@ -10,7 +10,7 @@ router.post(
   "/upload",
   requireAuth,
   uploadRateLimiter,
-  uploadPdf.single("file"),
+  uploadPdf.any(),
   documentsController.upload
 );
 router.get("/:id/status", requireAuth, documentsController.status);
