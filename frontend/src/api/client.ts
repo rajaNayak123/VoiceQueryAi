@@ -1,8 +1,8 @@
-// Fetch wrappers for the backend API.
 import type {
   CreateSessionResponse,
   DocumentStatusResponse,
   UploadResponse,
+  BatchUploadResponse,
 } from "../types";
 
 const API_BASE_URL =
@@ -52,6 +52,25 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
   return handleResponse<UploadResponse>(res);
 }
 
+export async function uploadDocuments(files: File[]): Promise<BatchUploadResponse> {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const authHeaders = await getAuthHeaders();
+
+  const res = await fetch(`${API_BASE_URL}/api/documents/upload`, {
+    method: "POST",
+    headers: {
+      ...authHeaders,
+    },
+    body: formData,
+  });
+
+  return handleResponse<BatchUploadResponse>(res);
+}
+
 export async function getStatus(
   documentId: string
 ): Promise<DocumentStatusResponse> {
@@ -65,16 +84,20 @@ export async function getStatus(
 }
 
 export async function createSession(
-  documentId: string
+  target: string | string[]
 ): Promise<CreateSessionResponse> {
   const authHeaders = await getAuthHeaders();
+  const payload = Array.isArray(target)
+    ? { documentIds: target }
+    : { documentId: target };
+
   const res = await fetch(`${API_BASE_URL}/api/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders,
     },
-    body: JSON.stringify({ documentId }),
+    body: JSON.stringify(payload),
   });
   return handleResponse<CreateSessionResponse>(res);
 }
