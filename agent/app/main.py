@@ -54,7 +54,10 @@ async def entrypoint(ctx: JobContext) -> None:
 
     collection = metadata.get("collection")
     document_id = metadata.get("documentId")
-    filename = metadata.get("filename", "your document")
+    document_ids = metadata.get("documentIds") or ([document_id] if document_id else [])
+    documents = metadata.get("documents") or []
+    is_comparison = bool(metadata.get("isComparison", len(document_ids) > 1))
+    filename = metadata.get("filename", "your documents" if is_comparison else "your document")
 
     if not collection:
         logger.error("No 'collection' in room metadata - cannot serve RAG queries")
@@ -63,6 +66,9 @@ async def entrypoint(ctx: JobContext) -> None:
     session.userdata = {
         "collection": collection,
         "documentId": document_id,
+        "documentIds": document_ids,
+        "documents": documents,
+        "isComparison": is_comparison,
         "filename": filename,
         "pending_citations": None,
     }
@@ -85,6 +91,8 @@ async def entrypoint(ctx: JobContext) -> None:
             if citations:
                 primary = citations[0]
                 coords = primary.get("coordinates") or primary.get("bbox") or (primary.get("boxes")[0] if primary.get("boxes") else None)
+                citation_doc_id = primary.get("documentId") or document_id
+                citation_doc_title = primary.get("documentTitle")
                 spotlight = {
                     "page_number": primary.get("page_number", primary.get("page", 1)),
                     "pageIndex": primary.get("pageIndex", 0),
@@ -92,6 +100,8 @@ async def entrypoint(ctx: JobContext) -> None:
                     "section": primary.get("section"),
                     "snippet": primary.get("snippet"),
                     "citationId": primary.get("id"),
+                    "documentId": citation_doc_id,
+                    "documentTitle": citation_doc_title,
                     "agentSpeaking": True,
                 }
                 payload = json.dumps({
@@ -101,7 +111,8 @@ async def entrypoint(ctx: JobContext) -> None:
                     "page_number": spotlight["page_number"],
                     "coordinates": coords,
                     "agentSpeaking": True,
-                    "documentId": document_id,
+                    "documentId": citation_doc_id,
+                    "documentTitle": citation_doc_title,
                 }).encode("utf-8")
                 asyncio.create_task(
                     ctx.room.local_participant.publish_data(
@@ -217,7 +228,9 @@ async def entrypoint(ctx: JobContext) -> None:
 
     await session.start(agent=PdfRagAgent(), room=ctx.room)
 
-    await session.generate_reply(instructions=greeting_instructions(filename))
+    await session.generate_reply(
+        instructions=greeting_instructions(filename, is_comparison=is_comparison)
+    )
 
     @ctx.room.on("participant_disconnected")
     def _on_participant_disconnected(participant) -> None:  # noqa: ANN001
