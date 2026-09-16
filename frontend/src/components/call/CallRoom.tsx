@@ -16,21 +16,35 @@ import { LiveLatencyHUD } from "./LiveLatencyHUD";
 import { useCitations } from "../../hooks/useCitations";
 import { getDocumentPdfUrl } from "../../api/client";
 
+interface DocumentItemSummary {
+  id: string;
+  filename: string;
+}
+
 interface CallRoomProps {
   token: string;
   livekitUrl: string;
   documentId?: string;
+  documentIds?: string[];
+  documents?: DocumentItemSummary[];
   filename?: string;
+  isComparison?: boolean;
   onCallEnded: () => void;
 }
 
 function CallRoomInner({
   documentId,
+  documentIds = [],
+  documents = [],
   filename,
+  isComparison = false,
   onCallEnded,
 }: {
   documentId?: string;
+  documentIds?: string[];
+  documents?: DocumentItemSummary[];
   filename?: string;
+  isComparison?: boolean;
   onCallEnded: () => void;
 }) {
   const {
@@ -49,6 +63,34 @@ function CallRoomInner({
 
   const { localParticipant } = useLocalParticipant();
   const [engineerMode, setEngineerMode] = useState<boolean>(true);
+
+  // Normalize documents list
+  const normalizedDocs: DocumentItemSummary[] =
+    documents && documents.length > 0
+      ? documents
+      : documentIds && documentIds.length > 0
+      ? documentIds.map((id, idx) => ({ id, filename: `Document ${idx + 1}` }))
+      : documentId
+      ? [{ id: documentId, filename: filename || "Document" }]
+      : [];
+
+  const effectiveIsComparison = isComparison || normalizedDocs.length > 1;
+  const [activeDocId, setActiveDocId] = useState<string>(
+    normalizedDocs[0]?.id || documentId || ""
+  );
+  const [viewMode, setViewMode] = useState<"tabbed" | "split">(
+    effectiveIsComparison && normalizedDocs.length >= 2 ? "tabbed" : "tabbed"
+  );
+
+  // Auto-focus document switcher: when agent voice or user citation targets a specific document, switch tab
+  useEffect(() => {
+    const targetDocId = activeSpotlight?.documentId || selectedCitation?.documentId;
+    if (targetDocId && normalizedDocs.some((d) => d.id === targetDocId)) {
+      if (activeDocId !== targetDocId && viewMode === "tabbed") {
+        setActiveDocId(targetDocId);
+      }
+    }
+  }, [activeSpotlight?.documentId, activeSpotlight?.timestamp, selectedCitation?.documentId, activeDocId, normalizedDocs, viewMode]);
 
   // Keyboard shortcut: Press 'E' to toggle Engineer Mode Live Latency HUD
   useEffect(() => {
@@ -88,7 +130,6 @@ function CallRoomInner({
   }, []);
 
   const handleEndCallRequest = () => {
-    // Open summary recap so user can export before exiting
     setIsSummaryOpen(true);
   };
 
@@ -97,7 +138,7 @@ function CallRoomInner({
     onCallEnded();
   };
 
-  if (!documentId) {
+  if (normalizedDocs.length === 0 && !documentId) {
     // Single-column fallback when no document is associated
     return (
       <div className="call-room-fallback">
@@ -161,22 +202,135 @@ function CallRoomInner({
     );
   }
 
-  const pdfUrl = getDocumentPdfUrl(documentId);
+  const activeDoc = normalizedDocs.find((d) => d.id === activeDocId) || normalizedDocs[0];
+  const activePdfUrl = getDocumentPdfUrl(activeDoc.id);
+
+  // Helper for citations filtered to a specific document
+  const getCitationsForDoc = (docId: string) =>
+    citations.filter((c) => !c.documentId || c.documentId === docId);
+
+  const getSpotlightForDoc = (docId: string) =>
+    activeSpotlight && (!activeSpotlight.documentId || activeSpotlight.documentId === docId)
+      ? activeSpotlight
+      : null;
 
   return (
     <div className="call-room-split-layout">
       <RoomAudioRenderer />
 
-      {/* Left Pane: In-browser PDF Viewer with real-time dynamic highlights */}
+      {/* Left Pane: In-browser PDF Viewer with Comparison Bar */}
       <section className="call-pdf-section">
-        <PdfViewer
-          fileUrl={pdfUrl}
-          filename={filename}
-          citations={citations}
-          selectedCitation={selectedCitation}
-          activeSpotlight={activeSpotlight}
-          agentSpeaking={agentSpeaking}
-        />
+        {effectiveIsComparison && normalizedDocs.length > 1 && (
+          <div className="comparison-doc-switcher-bar">
+            <div className="comparison-pills-row">
+              {normalizedDocs.map((doc, idx) => {
+                const isDocActive = activeDocId === doc.id;
+                const isDocSpeaking =
+                  agentSpeaking &&
+                  ((activeSpotlight?.documentId === doc.id) ||
+                    (!activeSpotlight?.documentId && idx === 0));
+                return (
+                  <button
+                    key={doc.id}
+                    type="button"
+                    className={`comparison-doc-pill ${isDocActive ? "is-active" : ""} ${
+                      idx === 0 ? "pill-doc-a" : "pill-doc-b"
+                    }`}
+                    onClick={() => {
+                      setActiveDocId(doc.id);
+                      if (viewMode === "split") setViewMode("tabbed");
+                    }}
+                  >
+                    <span className="doc-pill-tag">Doc {String.fromCharCode(65 + idx)}</span>
+                    <span className="doc-pill-name">{doc.filename}</span>
+                    {isDocSpeaking && (
+                      <span className="doc-speaking-indicator" title="Agent is currently citing this document">
+                        <span className="pulse-mini-ring" />
+                        <span className="pulse-mini-core" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Split / Tabbed View Toggle */}
+            <div className="view-mode-toggle-group">
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === "tabbed" ? "active" : ""}`}
+                onClick={() => setViewMode("tabbed")}
+                title="Single Document Focus with Tab Switcher"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                </svg>
+                <span>Tabbed</span>
+              </button>
+              <button
+                type="button"
+                className={`view-mode-btn ${viewMode === "split" ? "active" : ""}`}
+                onClick={() => setViewMode("split")}
+                title="Side-by-Side Dual Document Comparison"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <rect x="3" y="3" width="8" height="18" rx="1.5" />
+                  <rect x="13" y="3" width="8" height="18" rx="1.5" />
+                </svg>
+                <span>Side-by-Side</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* PDF Renderers based on View Mode */}
+        {viewMode === "split" && normalizedDocs.length >= 2 ? (
+          <div className="comparison-dual-pdf-grid">
+            <div className="dual-pdf-pane pane-a">
+              <PdfViewer
+                fileUrl={getDocumentPdfUrl(normalizedDocs[0].id)}
+                filename={`Doc A: ${normalizedDocs[0].filename}`}
+                citations={getCitationsForDoc(normalizedDocs[0].id)}
+                selectedCitation={
+                  selectedCitation?.documentId === normalizedDocs[0].id ? selectedCitation : null
+                }
+                activeSpotlight={getSpotlightForDoc(normalizedDocs[0].id)}
+                agentSpeaking={agentSpeaking && activeSpotlight?.documentId === normalizedDocs[0].id}
+                onSelectCitation={selectCitation}
+              />
+            </div>
+            <div className="dual-pdf-pane pane-b">
+              <PdfViewer
+                fileUrl={getDocumentPdfUrl(normalizedDocs[1].id)}
+                filename={`Doc B: ${normalizedDocs[1].filename}`}
+                citations={getCitationsForDoc(normalizedDocs[1].id)}
+                selectedCitation={
+                  selectedCitation?.documentId === normalizedDocs[1].id ? selectedCitation : null
+                }
+                activeSpotlight={getSpotlightForDoc(normalizedDocs[1].id)}
+                agentSpeaking={agentSpeaking && activeSpotlight?.documentId === normalizedDocs[1].id}
+                onSelectCitation={selectCitation}
+              />
+            </div>
+          </div>
+        ) : (
+          <PdfViewer
+            fileUrl={activePdfUrl}
+            filename={activeDoc.filename}
+            citations={getCitationsForDoc(activeDoc.id)}
+            selectedCitation={
+              selectedCitation?.documentId === activeDoc.id || !selectedCitation?.documentId
+                ? selectedCitation
+                : null
+            }
+            activeSpotlight={getSpotlightForDoc(activeDoc.id)}
+            agentSpeaking={
+              agentSpeaking &&
+              (!activeSpotlight?.documentId || activeSpotlight.documentId === activeDoc.id)
+            }
+            onSelectCitation={selectCitation}
+          />
+        )}
       </section>
 
       {/* Right Pane: Assistant Controls, Citations Stream & Live Transcript */}
@@ -306,7 +460,10 @@ export function CallRoom({
   token,
   livekitUrl,
   documentId,
+  documentIds,
+  documents,
   filename,
+  isComparison,
   onCallEnded,
 }: CallRoomProps) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -339,7 +496,10 @@ export function CallRoom({
     >
       <CallRoomInner
         documentId={documentId}
+        documentIds={documentIds}
+        documents={documents}
         filename={filename}
+        isComparison={isComparison}
         onCallEnded={onCallEnded}
       />
     </LiveKitRoom>
