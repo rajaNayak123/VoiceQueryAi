@@ -3,6 +3,8 @@ import { qdrant, EMBEDDING_DIM } from "../config/qdrant";
 import type { ChunkWithMetadata } from "../types";
 import { logger } from "../utils/logger";
 
+export const MULTI_TENANT_COLLECTION = "pdf_documents";
+
 export function collectionNameFor(documentId: string): string {
   return `doc_${documentId}`;
 }
@@ -22,16 +24,53 @@ export async function createCollection(collectionName: string): Promise<void> {
     logger.warn({ err, collectionName }, "Could not create text payload index");
   }
 
-  logger.info({ collectionName }, "Created Qdrant collection with text index");
+  // Create keyword index on 'documentId' for Qdrant multi-tenancy filtered vector search
+  try {
+    await qdrant.createPayloadIndex(collectionName, {
+      field_name: "documentId",
+      field_schema: "keyword",
+    });
+  } catch (err) {
+    logger.warn({ err, collectionName }, "Could not create documentId payload index");
+  }
+
+  // Create keyword index on 'filename' for document-specific filtering
+  try {
+    await qdrant.createPayloadIndex(collectionName, {
+      field_name: "filename",
+      field_schema: "keyword",
+    });
+  } catch (err) {
+    logger.warn({ err, collectionName }, "Could not create filename payload index");
+  }
+
+  logger.info({ collectionName }, "Created Qdrant collection with multi-tenancy indices");
+}
+
+export async function ensureMultiTenantCollection(): Promise<string> {
+  try {
+    const res = await qdrant.collectionExists(MULTI_TENANT_COLLECTION);
+    if (!res?.exists) {
+      await createCollection(MULTI_TENANT_COLLECTION);
+    }
+  } catch {
+    try {
+      await createCollection(MULTI_TENANT_COLLECTION);
+    } catch {
+      // Collection already exists or created concurrently
+    }
+  }
+  return MULTI_TENANT_COLLECTION;
 }
 
 export async function upsertChunks(params: {
   collectionName: string;
   documentId: string;
+  filename?: string;
   chunks: ChunkWithMetadata[];
   vectors: number[][];
 }): Promise<void> {
-  const { collectionName, documentId, chunks, vectors } = params;
+  const { collectionName, documentId, filename, chunks, vectors } = params;
 
   const points = chunks.map((chunk, i) => ({
     id: uuidv4(),
@@ -45,6 +84,7 @@ export async function upsertChunks(params: {
       section: chunk.section ?? null,
       caption: chunk.caption ?? null,
       documentId,
+      filename: filename ?? null,
     },
   }));
 
@@ -56,11 +96,47 @@ export async function upsertChunks(params: {
   }
 
   logger.info(
-    { collectionName, count: points.length },
-    "Upserted chunks into Qdrant"
+    { collectionName, count: points.length, documentId },
+    "Upserted chunks into primary Qdrant collection"
   );
+
+  // Also ensure chunks exist in the shared multi-tenant collection if different
+  if (collectionName !== MULTI_TENANT_COLLECTION) {
+    try {
+      await ensureMultiTenantCollection();
+      for (let i = 0; i < points.length; i += BATCH_SIZE) {
+        const batch = points.slice(i, i + BATCH_SIZE);
+        await qdrant.upsert(MULTI_TENANT_COLLECTION, { wait: true, points: batch });
+      }
+      logger.info(
+        { count: points.length, documentId },
+        "Upserted chunks into multi-tenant Qdrant collection"
+      );
+    } catch (err) {
+      logger.warn({ err, documentId }, "Failed to mirror chunks to multi-tenant collection");
+    }
+  }
 }
 
 export async function deleteCollection(collectionName: string): Promise<void> {
   await qdrant.deleteCollection(collectionName);
+}
+
+export async function deleteDocumentPoints(documentId: string): Promise<void> {
+  try {
+    await qdrant.delete(MULTI_TENANT_COLLECTION, {
+      wait: true,
+      filter: {
+        must: [
+          {
+            key: "documentId",
+            match: { value: documentId },
+          },
+        ],
+      },
+    });
+    logger.info({ documentId }, "Deleted document points from multi-tenant collection");
+  } catch (err) {
+    logger.warn({ err, documentId }, "Failed to delete points from multi-tenant collection (continuing)");
+  }
 }
