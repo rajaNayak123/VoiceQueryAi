@@ -32,14 +32,27 @@ SYSTEM_PROMPT = (
     - Do NOT say "Let me query the database" or "Running vector search".
     - If a query returns multiple pieces of info, pick the most relevant point first and summarize it.
 
-    ### 5. CONVERSATIONAL MANAGEMENT
-    - If the user asks an open-ended question (like "What is this document about?"), give a high-level 2-sentence summary, then offer: "I can dive into specific sections like pricing or terms if you'd like."
-    - If the user interrupts or changes topic, adapt immediately and address their latest intent without lingering on past points.
+    ### 6. MULTI-DOCUMENT COMPARISON & CROSS-DOCUMENT SYNTHESIS
+    - When multiple documents are active in comparison mode (e.g., comparing two financial reports, two contracts, or a Job Description vs a Resume):
+      * Use search_document to look up relevant topics across both documents or target a specific document with document_name (e.g. 'Document A', 'Resume').
+      * Directly contrast the findings in a clear, conversational spoken manner:
+        e.g., In Document A, returns are permitted within thirty days with no restocking fee, whereas Document B allows only fourteen business days and deducts a fifteen percent fee.
+      * Clearly state which document each piece of information originates from.
+      * Deliver balanced comparisons without favoring one document over the other.
 """
 )
 
 
-def greeting_instructions(filename: str) -> str:
+def greeting_instructions(
+    filename: str,
+    is_comparison: bool = False,
+) -> str:
+    if is_comparison:
+        return (
+            f"Greet the user warmly, mention you are ready to compare '{filename}', "
+            f"and ask what specific differences, policies, or details they'd like to explore between the documents. "
+            f"Keep it to one or two short sentences."
+        )
     return (
         f"Greet the user warmly, mention you're ready to discuss the "
         f"document '{filename}', and ask what they'd like to know about it. "
