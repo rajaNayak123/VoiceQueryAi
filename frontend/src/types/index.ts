@@ -13,12 +13,31 @@ export interface UploadResponse {
   status: DocumentStatus;
 }
 
+export interface DocumentItemSummary {
+  id: string;
+  filename: string;
+  status?: string;
+}
+
 export interface CreateSessionResponse {
   token: string;
   roomName: string;
   livekitUrl: string;
   documentId?: string;
   filename?: string;
+  documentIds?: string[];
+  documents?: DocumentItemSummary[];
+  isComparison?: boolean;
+}
+
+export interface BatchUploadResponse {
+  documents: {
+    documentId: string;
+    filename: string;
+    status: DocumentStatus;
+  }[];
+  documentId?: string;
+  status?: DocumentStatus;
 }
 
 export interface BoundingBox {
@@ -38,6 +57,8 @@ export interface SpotlightPayload {
   citationId?: string;
   agentSpeaking?: boolean;
   timestamp?: number;
+  documentId?: string;
+  documentTitle?: string;
 }
 
 export interface Citation {
@@ -54,6 +75,8 @@ export interface Citation {
   contentType?: "text" | "table" | "diagram" | "heading";
   section?: string | null;
   caption?: string | null;
+  documentId?: string;
+  documentTitle?: string;
 }
 
 export interface TelemetryMetrics {
@@ -85,6 +108,7 @@ export interface CitationPacket {
   agentSpeaking?: boolean;
   state?: string;
   documentId?: string;
+  documentTitle?: string;
   metrics?: TelemetryMetrics;
   phase?: "stt" | "retrieval" | "llm" | "tts" | "completed" | "idle";
   query?: string;
