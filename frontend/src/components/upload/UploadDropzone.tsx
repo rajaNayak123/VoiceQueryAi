@@ -1,13 +1,19 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 interface UploadDropzoneProps {
-  onFileSelected: (file: File) => void;
+  onFileSelected?: (file: File) => void;
+  onFilesSelected?: (files: File[]) => void;
   disabled?: boolean;
 }
 
-export function UploadDropzone({ onFileSelected, disabled }: UploadDropzoneProps) {
+export function UploadDropzone({
+  onFileSelected,
+  onFilesSelected,
+  disabled,
+}: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Micro Canvas Particle Ring Centerpiece
   useEffect(() => {
@@ -79,21 +85,46 @@ export function UploadDropzone({ onFileSelected, disabled }: UploadDropzoneProps
     return () => cancelAnimationFrame(animId);
   }, []);
 
-  function validateAndEmit(file: File | undefined) {
-    if (!file) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      alert("Please upload a valid PDF document (.pdf).");
+  function handleFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const pdfs: File[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const f = fileList[i];
+      if (f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")) {
+        pdfs.push(f);
+      }
+    }
+
+    if (pdfs.length === 0) {
+      alert("Please upload valid PDF documents (.pdf).");
       return;
     }
-    onFileSelected(file);
+
+    if (pdfs.length > 1 && onFilesSelected) {
+      onFilesSelected(pdfs);
+    } else if (onFilesSelected) {
+      onFilesSelected(pdfs);
+    } else if (onFileSelected) {
+      onFileSelected(pdfs[0]);
+    }
   }
 
   return (
     <div className="upload-card-wrapper">
       <div
-        className={`dropzone-container ${disabled ? "disabled" : ""}`}
+        className={`dropzone-container ${disabled ? "disabled" : ""} ${isDragOver ? "drag-over" : ""}`}
         onClick={() => {
           if (!disabled) inputRef.current?.click();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          if (!disabled) handleFiles(e.dataTransfer.files);
         }}
       >
         {/* Canvas Particle Ring Centerpiece */}
@@ -118,9 +149,9 @@ export function UploadDropzone({ onFileSelected, disabled }: UploadDropzoneProps
           </div>
         </div>
 
-        <h3 className="dropzone-prompt-title">Select PDF Document</h3>
+        <h3 className="dropzone-prompt-title">Select or Drop PDF Documents</h3>
         <p className="dropzone-prompt-subtitle">
-          Interactive semantic vector indexing • Up to 50MB
+          Select 1 document or upload 2+ PDFs at once for <strong>Multi-Document Comparison Mode</strong>
         </p>
 
         <button
@@ -146,7 +177,7 @@ export function UploadDropzone({ onFileSelected, disabled }: UploadDropzoneProps
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          Browse & Upload PDF
+          Browse & Upload PDFs
         </button>
 
         <div className="dropzone-footer-tags">
@@ -155,20 +186,21 @@ export function UploadDropzone({ onFileSelected, disabled }: UploadDropzoneProps
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
-            PDF up to 50MB
+            Single or Multi-PDF
+          </span>
+          <span className="tag-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            Doc A vs Doc B Comparison
           </span>
           <span className="tag-badge">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
-            HuggingFace Embeddings
-          </span>
-          <span className="tag-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            </svg>
-            Indic Voice (Sarvam)
+            Qdrant Multi-Tenancy
           </span>
         </div>
 
@@ -176,8 +208,9 @@ export function UploadDropzone({ onFileSelected, disabled }: UploadDropzoneProps
           ref={inputRef}
           type="file"
           accept="application/pdf"
+          multiple
           hidden
-          onChange={(e) => validateAndEmit(e.target.files?.[0])}
+          onChange={(e) => handleFiles(e.target.files)}
         />
       </div>
     </div>
