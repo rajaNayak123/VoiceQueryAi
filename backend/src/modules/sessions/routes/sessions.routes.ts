@@ -5,5 +5,6 @@ import { requireAuth } from "../../../middleware/auth";
 const router = Router();
 
 router.post("/", requireAuth, sessionsController.create);
+router.post("/knowledge-graph", sessionsController.generateKnowledgeGraph);
 
 export default router;
