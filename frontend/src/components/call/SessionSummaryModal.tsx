@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useTranscriptions } from "@livekit/components-react";
 import type { Citation, TelemetryMetrics } from "../../types";
+import { PostCallKnowledgeGraph } from "./PostCallKnowledgeGraph";
+import { synthesizeKnowledgeGraph } from "../../utils/knowledgeGraphBuilder";
 
 export interface SessionSummaryModalProps {
   isOpen: boolean;
@@ -22,6 +24,9 @@ export function SessionSummaryModal({
   telemetryHistory,
 }: SessionSummaryModalProps) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"mindmap" | "brief">("mindmap");
+  const [isMaximized, setIsMaximized] = useState<boolean>(true);
+
   const transcriptions = useTranscriptions();
 
   // Format call duration
@@ -71,6 +76,11 @@ export function SessionSummaryModal({
     return pairs;
   }, [transcriptions]);
 
+  // Knowledge graph synthesis for Mermaid code in exports
+  const graphSynthesis = useMemo(() => {
+    return synthesizeKnowledgeGraph(conversationPairs, allCitations, filename);
+  }, [conversationPairs, allCitations, filename]);
+
   // Aggregate telemetry statistics
   const stats = useMemo(() => {
     const totalTurns = telemetryHistory.length;
@@ -102,8 +112,10 @@ export function SessionSummaryModal({
     if (conversationPairs.length === 0) {
       return `A live voice session was conducted regarding "${filename}". The caller reviewed the document structure and explored key topics with the AI assistant.`;
     }
-    const topics = conversationPairs.map((p) => p.question).slice(0, 4).join('; ');
-    return `During this voice consultation on "${filename}", the caller inquired about: ${topics}. The AI assistant provided factual answers strictly grounded in the document text, referencing ${allCitations.length} distinct context passages across ${uniquePages.length > 0 ? `page(s) ${uniquePages.join(", ")}` : "the document"}.`;
+    const topics = conversationPairs.map((p) => p.question).slice(0, 4).join("; ");
+    return `During this voice consultation on "${filename}", the caller inquired about: ${topics}. The AI assistant provided factual answers strictly grounded in the document text, referencing ${allCitations.length} distinct context passages across ${
+      uniquePages.length > 0 ? `page(s) ${uniquePages.join(", ")}` : "the document"
+    }.`;
   }, [conversationPairs, filename, allCitations, uniquePages]);
 
   // Generate Action Items
@@ -113,10 +125,22 @@ export function SessionSummaryModal({
       "Cross-verify highlighted technical specifications and figures with team stakeholders",
     ];
 
-    if (conversationPairs.some((p) => p.question.toLowerCase().includes("appointment") || p.question.toLowerCase().includes("book"))) {
+    if (
+      conversationPairs.some(
+        (p) =>
+          p.question.toLowerCase().includes("appointment") ||
+          p.question.toLowerCase().includes("book")
+      )
+    ) {
       items.push("Verify appointment booking rules and temporary slot hold timeouts");
     }
-    if (conversationPairs.some((p) => p.question.toLowerCase().includes("redis") || p.question.toLowerCase().includes("cache"))) {
+    if (
+      conversationPairs.some(
+        (p) =>
+          p.question.toLowerCase().includes("redis") ||
+          p.question.toLowerCase().includes("cache")
+      )
+    ) {
       items.push("Check Redis session state persistence and cache TTL configurations");
     }
     if (items.length === 2) {
@@ -126,7 +150,7 @@ export function SessionSummaryModal({
     return items;
   }, [uniquePages, filename, conversationPairs]);
 
-  // Generate Complete Markdown Report
+  // Generate Complete Markdown Report with Mermaid Knowledge Graph
   const generateMarkdown = () => {
     const dateStr = new Date().toLocaleDateString(undefined, {
       year: "numeric",
@@ -134,7 +158,7 @@ export function SessionSummaryModal({
       day: "numeric",
     });
 
-    return `# Voice Query AI — Session Summary & Meeting Recap
+    return `# Voice Query AI — Session Summary & Knowledge Graph Recap
 
 **Document:** ${filename}  
 **Date:** ${dateStr}  
@@ -142,6 +166,13 @@ export function SessionSummaryModal({
 **Total Q&A Turns:** ${conversationPairs.length}  
 **Average Latency:** ${stats.avgLatency > 0 ? `${stats.avgLatency} ms` : "N/A"}  
 **Semantic Cache Hit Rate:** ${stats.cacheHitRate}%  
+
+---
+
+## 🧠 Interactive Knowledge Graph / Mind Map
+\`\`\`mermaid
+${graphSynthesis.mermaidCode}
+\`\`\`
 
 ---
 
@@ -157,7 +188,11 @@ ${
         .map(
           (p, i) => `### ${i + 1}. ${p.question}
 > **Answer:** ${p.answer}  
-> *Referenced Pages:* ${uniquePages.length > 0 ? uniquePages.map((pg) => `Page ${pg}`).join(", ") : "General document"}
+> *Referenced Pages:* ${
+            uniquePages.length > 0
+              ? uniquePages.map((pg) => `Page ${pg}`).join(", ")
+              : "General document"
+          }
 `
         )
         .join("\n")
@@ -175,7 +210,9 @@ ${
         .slice(0, 10)
         .map(
           (c) =>
-            `| Page ${c.page} | ${c.section || "Excerpt"} | "${c.snippet.replace(/\n/g, " ").slice(0, 90)}..." |`
+            `| Page ${c.page} | ${c.section || "Excerpt"} | "${c.snippet
+              .replace(/\n/g, " ")
+              .slice(0, 90)}..." |`
         )
         .join("\n")
     : "| N/A | General | No explicit citations recorded |"
@@ -221,163 +258,240 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
 
   return (
     <div className="summary-modal-overlay">
-      <div className="summary-modal-container">
+      <div
+        className={`summary-modal-container ${
+          isMaximized ? "summary-modal-maximized" : ""
+        }`}
+      >
         {/* Modal Header */}
         <div className="summary-modal-header">
           <div className="summary-title-group">
-            <span className="summary-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-            </span>
+            <span className="summary-icon">🧠</span>
             <div>
-              <h2 className="summary-title">Session Summary & Document Recap</h2>
+              <h2 className="summary-title">Post-Call Knowledge Architecture & Recap</h2>
               <p className="summary-subtitle">
-                Automated takeaways from your conversation on <strong>{filename}</strong>
+                Interactive Mind Map & Action Items for <strong>{filename}</strong>
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="summary-close-btn"
-            onClick={onClose}
-            title="Close summary"
-          >
-            ✕
-          </button>
+
+          {/* Center Tabs: Mind Map vs Executive Brief */}
+          <div className="summary-tabs-nav">
+            <button
+              type="button"
+              className={`summary-tab-nav-btn ${activeTab === "mindmap" ? "active" : ""}`}
+              onClick={() => setActiveTab("mindmap")}
+            >
+              🧠 Interactive Mind Map
+            </button>
+            <button
+              type="button"
+              className={`summary-tab-nav-btn ${activeTab === "brief" ? "active" : ""}`}
+              onClick={() => setActiveTab("brief")}
+            >
+              📝 Executive Brief & Q&A
+            </button>
+          </div>
+
+          <div className="summary-header-actions">
+            {/* Maximize / Resize Toggle */}
+            <button
+              type="button"
+              className="summary-resize-btn"
+              onClick={() => setIsMaximized((prev) => !prev)}
+              title={isMaximized ? "Restore standard size" : "Expand full screen"}
+            >
+              {isMaximized ? "⤡ Standard" : "⤢ Fullscreen"}
+            </button>
+            <button
+              type="button"
+              className="summary-close-btn"
+              onClick={onClose}
+              title="Close summary"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* Printable Summary Body */}
-        <div className="summary-modal-body printable-area">
-          {/* Metadata Badges */}
-          <div className="summary-meta-grid">
-            <div className="meta-card">
-              <span className="meta-label">Duration</span>
-              <strong className="meta-value">{formatDuration(durationSeconds)}</strong>
-            </div>
-            <div className="meta-card">
-              <span className="meta-label">Questions Asked</span>
-              <strong className="meta-value">{conversationPairs.length}</strong>
-            </div>
-            <div className="meta-card">
-              <span className="meta-label">Cited Pages</span>
-              <strong className="meta-value">
-                {uniquePages.length > 0 ? uniquePages.join(", ") : "None"}
-              </strong>
-            </div>
-            <div className="meta-card">
-              <span className="meta-label">Avg E2E Latency</span>
-              <strong className="meta-value">
-                {stats.avgLatency > 0 ? `${stats.avgLatency}ms` : "< 500ms"}
-              </strong>
-            </div>
-            <div className="meta-card">
-              <span className="meta-label">Cache Hit Rate</span>
-              <strong className="meta-value">{stats.cacheHitRate}%</strong>
-            </div>
+        {/* Modal Body */}
+        {activeTab === "mindmap" ? (
+          <div className="summary-mindmap-body">
+            <PostCallKnowledgeGraph
+              conversationPairs={conversationPairs}
+              allCitations={allCitations}
+              filename={filename}
+              durationSeconds={durationSeconds}
+            />
           </div>
-
-          {/* Section 1: Executive Summary */}
-          <div className="summary-section">
-            <h3 className="section-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-              Executive Summary
-            </h3>
-            <p className="section-text">{executiveSummary}</p>
-          </div>
-
-          {/* Section 2: Key Questions & Answers */}
-          <div className="summary-section">
-            <h3 className="section-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              Key Questions & Answers
-            </h3>
-            {conversationPairs.length > 0 ? (
-              <div className="qa-list">
-                {conversationPairs.map((pair, idx) => (
-                  <div key={idx} className="qa-card">
-                    <div className="qa-q-row">
-                      <span className="q-badge">Q{idx + 1}</span>
-                      <strong className="q-text">{pair.question}</strong>
-                    </div>
-                    <div className="qa-a-row">
-                      <span className="a-badge">A</span>
-                      <p className="a-text">{pair.answer}</p>
-                    </div>
-                  </div>
-                ))}
+        ) : (
+          <div className="summary-modal-body printable-area">
+            {/* Metadata Badges */}
+            <div className="summary-meta-grid">
+              <div className="meta-card">
+                <span className="meta-label">Duration</span>
+                <strong className="meta-value">{formatDuration(durationSeconds)}</strong>
               </div>
-            ) : (
-              <p className="empty-text">No conversation questions recorded in this session.</p>
-            )}
-          </div>
+              <div className="meta-card">
+                <span className="meta-label">Questions Asked</span>
+                <strong className="meta-value">{conversationPairs.length}</strong>
+              </div>
+              <div className="meta-card">
+                <span className="meta-label">Cited Pages</span>
+                <strong className="meta-value">
+                  {uniquePages.length > 0 ? uniquePages.join(", ") : "None"}
+                </strong>
+              </div>
+              <div className="meta-card">
+                <span className="meta-label">Avg E2E Latency</span>
+                <strong className="meta-value">
+                  {stats.avgLatency > 0 ? `${stats.avgLatency}ms` : "< 500ms"}
+                </strong>
+              </div>
+              <div className="meta-card">
+                <span className="meta-label">Cache Hit Rate</span>
+                <strong className="meta-value">{stats.cacheHitRate}%</strong>
+              </div>
+            </div>
 
-          {/* Section 3: Referenced Pages & Citations */}
-          <div className="summary-section">
-            <h3 className="section-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-              Referenced Document Citations
-            </h3>
-            {allCitations.length > 0 ? (
-              <div className="citations-table-wrapper">
-                <table className="summary-citations-table">
-                  <thead>
-                    <tr>
-                      <th>Page</th>
-                      <th>Section</th>
-                      <th>Relevant Excerpt</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allCitations.slice(0, 6).map((c) => (
-                      <tr key={c.id}>
-                        <td>
-                          <span className="page-pill">Page {c.page}</span>
-                        </td>
-                        <td>{c.section || "General"}</td>
-                        <td className="snippet-cell">"{c.snippet.slice(0, 110)}..."</td>
+            {/* Section 1: Executive Summary */}
+            <div className="summary-section">
+              <h3 className="section-title">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                Executive Summary
+              </h3>
+              <p className="section-text">{executiveSummary}</p>
+            </div>
+
+            {/* Section 2: Key Questions & Answers */}
+            <div className="summary-section">
+              <h3 className="section-title">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}
+                >
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                Key Questions & Answers
+              </h3>
+              {conversationPairs.length > 0 ? (
+                <div className="qa-list">
+                  {conversationPairs.map((pair, idx) => (
+                    <div key={idx} className="qa-card">
+                      <div className="qa-q-row">
+                        <span className="q-badge">Q{idx + 1}</span>
+                        <strong className="q-text">{pair.question}</strong>
+                      </div>
+                      <div className="qa-a-row">
+                        <span className="a-badge">A</span>
+                        <p className="a-text">{pair.answer}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-text">No conversation questions recorded in this session.</p>
+              )}
+            </div>
+
+            {/* Section 3: Referenced Pages & Citations */}
+            <div className="summary-section">
+              <h3 className="section-title">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Referenced Document Citations
+              </h3>
+              {allCitations.length > 0 ? (
+                <div className="citations-table-wrapper">
+                  <table className="summary-citations-table">
+                    <thead>
+                      <tr>
+                        <th>Page</th>
+                        <th>Section</th>
+                        <th>Relevant Excerpt</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="empty-text">No specific document citations triggered.</p>
-            )}
-          </div>
+                    </thead>
+                    <tbody>
+                      {allCitations.slice(0, 6).map((c) => (
+                        <tr key={c.id}>
+                          <td>
+                            <span className="page-pill">Page {c.page}</span>
+                          </td>
+                          <td>{c.section || "General"}</td>
+                          <td className="snippet-cell">"{c.snippet.slice(0, 110)}..."</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="empty-text">No specific document citations triggered.</p>
+              )}
+            </div>
 
-          {/* Section 4: Action Items */}
-          <div className="summary-section">
-            <h3 className="section-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}>
-                <polyline points="9 11 12 14 22 4" />
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-              </svg>
-              Action Items & Next Steps
-            </h3>
-            <ul className="action-items-list">
-              {actionItems.map((item, i) => (
-                <li key={i} className="action-item">
-                  <input type="checkbox" id={`item-${i}`} defaultChecked={false} />
-                  <label htmlFor={`item-${i}`}>{item}</label>
-                </li>
-              ))}
-            </ul>
+            {/* Section 4: Action Items */}
+            <div className="summary-section">
+              <h3 className="section-title">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ display: "inline-block", marginRight: 6, verticalAlign: -2 }}
+                >
+                  <polyline points="9 11 12 14 22 4" />
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                Action Items & Next Steps
+              </h3>
+              <ul className="action-items-list">
+                {actionItems.map((item, i) => (
+                  <li key={i} className="action-item">
+                    <input type="checkbox" id={`item-${i}`} defaultChecked={false} />
+                    <label htmlFor={`item-${i}`}>{item}</label>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Modal Footer / Export Controls */}
         <div className="summary-modal-footer">
@@ -386,14 +500,24 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
               type="button"
               className="export-btn export-md-btn"
               onClick={handleDownloadMarkdown}
-              title="Download Markdown (.md)"
+              title="Download Markdown (.md) with embedded Mermaid Knowledge Graph"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 5 }}>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ display: "inline-block", marginRight: 5 }}
+              >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Download Markdown (.md)
+              Download Recap & Graph (.md)
             </button>
             <button
               type="button"
@@ -401,7 +525,17 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
               onClick={handlePrintPdf}
               title="Print or Save as PDF (.pdf)"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 5 }}>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ display: "inline-block", marginRight: 5 }}
+              >
                 <polyline points="6 9 6 2 18 2 18 9" />
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                 <rect x="6" y="14" width="12" height="8" />
@@ -412,22 +546,28 @@ ${actionItems.map((item) => `- [ ] ${item}`).join("\n")}
               type="button"
               className="export-btn export-copy-btn"
               onClick={handleCopy}
-              title="Copy markdown text to clipboard"
+              title="Copy markdown recap to clipboard"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", marginRight: 5 }}>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ display: "inline-block", marginRight: 5 }}
+              >
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
-              {copied ? "Copied!" : "Copy Summary"}
+              {copied ? "Copied!" : "Copy Summary & Graph"}
             </button>
           </div>
 
           <div className="exit-actions-group">
-            <button
-              type="button"
-              className="return-call-btn"
-              onClick={onClose}
-            >
+            <button type="button" className="return-call-btn" onClick={onClose}>
               Return to Call
             </button>
             <button
