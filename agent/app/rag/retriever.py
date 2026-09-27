@@ -15,6 +15,7 @@ _is_local = settings.qdrant_url.startswith("http://")
 _qdrant = QdrantClient(
     url=settings.qdrant_url,
     api_key=None if _is_local else settings.qdrant_api_key,
+    check_compatibility=False,
 )
 
 TOP_K = 4
