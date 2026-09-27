@@ -139,6 +139,8 @@ class SemanticCache:
 
                 stored_vec_bytes = raw_entry[b"vector"]
                 stored_vec = np.frombuffer(stored_vec_bytes, dtype=np.float32)
+                if stored_vec.shape != q_vec.shape:
+                    continue
                 sim = float(np.dot(q_vec, stored_vec))
 
                 if sim > best_sim:
