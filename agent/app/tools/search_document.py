@@ -158,7 +158,7 @@ async def search_document(
                 "type": "citations_retrieved",
                 "citations": citations,
                 "spotlight": spotlight,
-                "documentId": primary.get("documentId") if citations else None,
+                "documentId": citations[0].get("documentId") if citations else None,
             }).encode("utf-8")
             asyncio.create_task(
                 job_ctx.room.local_participant.publish_data(
