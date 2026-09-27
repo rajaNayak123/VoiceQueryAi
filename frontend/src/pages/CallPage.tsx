@@ -56,8 +56,8 @@ export function CallPage({
       return;
     }
 
-    if (!activeDocumentId) {
-      setError("No document specified for this call session.");
+    if (!activeDocumentId || (activeDocumentId === "compare" && activeDocumentIds.length === 0)) {
+      setError("No document specified for this call session. Please select documents from the studio.");
       setLoading(false);
       return;
     }
@@ -69,10 +69,13 @@ export function CallPage({
         setLoading(true);
         setError(null);
 
+        const targetForSession = activeDocumentIds.length > 1 ? activeDocumentIds : activeDocumentId!;
+        const primaryDocId = activeDocumentIds.length > 0 ? activeDocumentIds[0] : activeDocumentId!;
+
         // Fetch session tokens and document details in parallel
         const [session, docStatus] = await Promise.all([
-          createSession(activeDocumentId!),
-          getStatus(activeDocumentId!).catch(() => null),
+          createSession(targetForSession),
+          primaryDocId !== "compare" ? getStatus(primaryDocId).catch(() => null) : null,
         ]);
 
         if (!isMounted) return;
@@ -95,7 +98,7 @@ export function CallPage({
     return () => {
       isMounted = false;
     };
-  }, [activeDocumentId, token, livekitUrl]);
+  }, [activeDocumentId, activeDocumentIds, token, livekitUrl]);
 
   const handleCallEnded = () => {
     if (propOnCallEnded) {
