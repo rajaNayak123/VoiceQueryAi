@@ -10,9 +10,26 @@ export function collectionNameFor(documentId: string): string {
 }
 
 export async function createCollection(collectionName: string): Promise<void> {
-  await qdrant.createCollection(collectionName, {
-    vectors: { size: EMBEDDING_DIM, distance: "Cosine" },
-  });
+  try {
+    const res = await qdrant.collectionExists(collectionName);
+    if (!res?.exists) {
+      await qdrant.createCollection(collectionName, {
+        vectors: { size: EMBEDDING_DIM, distance: "Cosine" },
+      });
+    }
+  } catch (err: any) {
+    if (!String(err?.message || err).includes("already exists")) {
+      try {
+        await qdrant.createCollection(collectionName, {
+          vectors: { size: EMBEDDING_DIM, distance: "Cosine" },
+        });
+      } catch (innerErr: any) {
+        if (!String(innerErr?.message || innerErr).includes("already exists")) {
+          throw innerErr;
+        }
+      }
+    }
+  }
 
   // Create full-text payload index on 'text' for BM25 and keyword search
   try {
