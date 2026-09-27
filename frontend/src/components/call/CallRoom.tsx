@@ -202,8 +202,8 @@ function CallRoomInner({
     );
   }
 
-  const activeDoc = normalizedDocs.find((d) => d.id === activeDocId) || normalizedDocs[0];
-  const activePdfUrl = getDocumentPdfUrl(activeDoc.id);
+  const activeDoc = normalizedDocs.find((d) => d.id === activeDocId) || normalizedDocs[0] || { id: "", filename: filename || "Document" };
+  const activePdfUrl = activeDoc.id ? getDocumentPdfUrl(activeDoc.id) : "";
 
   // Helper for citations filtered to a specific document
   const getCitationsForDoc = (docId: string) =>
