@@ -94,6 +94,9 @@ export function useCitations() {
               primaryCitation.pageIndex ??
               Math.max(0, pageNum - 1);
 
+            const docId = data.spotlight?.documentId || primaryCitation.documentId || data.documentId;
+            const docTitle = data.spotlight?.documentTitle || primaryCitation.documentTitle || data.documentTitle;
+
             setActiveSpotlight({
               page_number: pageNum,
               pageIndex: pageIdx,
@@ -101,6 +104,8 @@ export function useCitations() {
               section: data.spotlight?.section || primaryCitation.section,
               snippet: data.spotlight?.snippet || primaryCitation.snippet,
               citationId: data.spotlight?.citationId || primaryCitation.id,
+              documentId: docId,
+              documentTitle: docTitle,
               agentSpeaking: data.type === "citation_highlight" ? (data.agentSpeaking ?? true) : false,
               timestamp: Date.now(),
             });
@@ -146,6 +151,8 @@ export function useCitations() {
         section: citation.section,
         snippet: citation.snippet,
         citationId: citation.id,
+        documentId: citation.documentId,
+        documentTitle: citation.documentTitle,
         agentSpeaking: false,
         timestamp: Date.now(),
       });
